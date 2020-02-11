@@ -1,0 +1,80 @@
+#userboard {
+	list-item-style:none;
+	list-style:none;
+}
+
+.user-online {
+	text-align: center;
+	padding: 0px;
+}
+
+
+.user-online button {
+	width: 100%;
+	background: rgba(1,1,1,0);
+	font-family: Arial;
+	font-size: 20px;
+	padding: 20px;
+	text-decoration: none;
+	border:none;
+	margin:none !important;
+}
+
+.user-online button:hover {
+	text-decoration: none;
+	background-color: rgba(82, 117, 166, 0.4);
+}
+
+
+.user-online td {
+	padding: 0px;
+	border-top: none;
+}
+
+.userlist {
+	padding: 0px;
+}
+
+#users-in-chats, #users-in-hub {
+	padding: 5px;
+	text-align: center;
+	background-color: #a4afc1;;
+	border: 1px solid #8293af;
+}
+
+#hub_info{
+	margin:10px;
+}
+
+.information {
+	padding-left:7px;
+	color:gray;
+	font:small;
+}
+
+#info {
+	width: 80%;
+	margin: auto;
+}
+
+.card-info {
+	margin-bottom:20px;
+	margin-top:20px;
+}
+
+.main-hub {
+	/* margin-bottom:50px; */
+}
+
+.card-users {
+	min-height: 600px;
+}
+
+.card-instructions {
+	font-size: small;
+	min-height: 600px;
+}
+
+.card-instructions .card-header {
+	font-size:normal;
+}

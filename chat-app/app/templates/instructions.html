@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<head>
+   <title>DiaBLa</title>
+   <meta charset="UTF-8">
+   <meta name="description" content="Dialogue Bilingue / Bilingual DiaLogue">
+   <meta property="og:title" content="DiaBLa">
+   <meta property="og:description" content="Dialogue Bilingue / Bilingual DiaLogue">
+   <meta property="og:image" content="{{ url_for('static', filename='images/eval.png') }}">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <link rel="shortcut icon" href="#" />
+   <!-- Bootstrap -->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+   <link rel=stylesheet type=text/css href="/static/main.css">
+   <link rel=stylesheet type=text/css href="/static/register.css">
+   <!-- Website Font style -->
+   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+   <!-- Google Fonts -->
+   <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+   <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+   <script src="//code.jquery.com/jquery-3.2.1.min.js"></script>
+   <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+   <!-- Javascript -->
+   <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+   <script src="https://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+   <script>
+      var language;
+      $(document).ready(function(){
+        if (window.location.hash == "#french" || window.location.hash == "#english"){
+          language = window.location.hash.split('#')[1];
+        }
+        else  {
+          language = "english";
+        }
+        change_language(language);
+
+        // Change links to have correct language
+        document.getElementById("nav-register").setAttribute('href', '/register#' + language);
+        document.getElementById("nav-register-link").setAttribute('href', '/register#' + language);
+        document.getElementById("nav-login").setAttribute('href', '/login#' + language);
+        document.getElementById("nav-login-link").setAttribute('href', '/login#' + language);
+
+
+        // visualise the text for the language
+        $("span."+language).show();
+
+        // tooltips for final evaluation form
+        $('[data-toggle="tooltip"]').tooltip();
+
+      });
+
+      function change_language(chosen_language){
+        // visualise the text for the language
+        var langs = ["english", "french"];
+        window.location.hash = chosen_language;
+        for (var idx in langs){
+         if (langs[idx] == chosen_language){
+           $("." + langs[idx]).show();
+         }
+         else {
+           $("." + langs[idx]).hide();
+         }
+         }
+         window.location.href = "{{ url_for('main.index') }}#"+chosen_language;
+         // Change links to have correct language
+         document.getElementById("nav-register").setAttribute('href', '/register#' + language);
+         document.getElementById("nav-register-link").setAttribute('href', '/register#' + language);
+         document.getElementById("nav-login").setAttribute('href', '/login#' + language);
+         document.getElementById("nav-login-link").setAttribute('href', '/login#' + language);
+      }
+
+   </script>
+</head>
+<body>
+   <div class="content-wrapper">
+      <div class="container-fluid">
+         <ul class="nav nav-tabs">
+            <li class="nav-item dropdown">
+               <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+               <!--<i class="fa fa-language"></i>-->
+               &nbsp;LANG.
+               </a>
+               <div class="dropdown-menu">
+                  <a class="dropdown-item nav-item" onclick="change_language('english')">ENGLISH</a>
+                  <a class="dropdown-item nav-item" onclick="change_language('french')">FRANÇAIS</a>
+               </div>
+            </li>
+            <li class="nav-item">
+               <a id="nav-register" class="nav-link abs" href="/register">
+               <span class="english">REGISTER</span>
+               <span class="french">CRÉER&nbsp;UN&nbsp;COMPTE</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a id="nav-login" class="nav-link abs" href="/login">
+               <span class="english">LOG IN</span>
+               <span class="french">SE&nbsp;CONNECTER</span>
+               </a>
+            </li>
+         </ul>
+         <div class="panel-heading">
+            <div class="panel-title text-left">
+               <h1 class="my-4">
+                  DiaBLa Instructions
+                  <span class="font-italic">
+                  <small>
+                  <span class="english">BiLingual Dialogue</span>
+                  <span class="french">Dialogue BiLingue</span>
+                  </small></span>
+               </h1>
+            </div>
+         </div>
+         <div class="row main">
+            <div class="main-center">
+               <span class="english">You will be participating in an improvised written dialogue
+               with another user. You will each write in
+               your own native language (English or French). Don't worry - you do not need
+               to be able to speak or understand the other language. Machine translation systems will
+               translate all of the other person's sentences into your language. You will also
+               evaluate the translations from a monolingual point of view (i.e. is the sentence grammatical? Does it make sense? Was the word choice ok?
+               Is it stylistically appropriate? Is it coherent with respect to previous sentences?)</span>
+               <span class="french">Vous allez participer à un dialogue écrit improvisé
+               avec un autre utilisateur. Chacun d'entre vous va écrire dans sa propre
+               langue maternelle (anglais ou français). Mais ne vous inquiétez pas - vous
+               n’avez PAS besoin de parler ou de comprendre l'autre langue. Des systèmes de traduction automatique
+               traduiront toutes les phrases de l'autre personne dans votre langue.
+               Vous allez également évaluer la qualité des traductions d'un point
+               de vue monolingue (Est-ce que la phrase est grammaticale&nbsp;? Est-ce que la phrase a du sens&nbsp;? Est-ce que le choix des mots est bon&nbsp;?
+               Est-ce que le style est approprié&nbsp;? Est-ce que la phrase est cohérente par rapport aux phrases précédentes&nbsp;?).
+               </span>
+               <br>
+               <br>
+               <span class="font-weight-bold">
+               <span class="english">Please read all instructions carefully before continuing!</span>
+               <span class="french">Merci de lire attentivement les instructions avant de continuer.</span>
+               </span>
+               <hr style="width:100%;">
+               <span class="english">
+               Recommended navigators (in order):
+               Chrome, Safari, Firefox (but not Internet Explorer/Edge). Please use a recent version!
+               </span>
+               <span class="french">
+               Navigateurs recommandés (par ordre de préférence)&nbsp;: Chrome, Safari,
+               Firefox (mais pas Internet Explorer/Edge). Merci d'utiliser une version récente.
+               </span>
+               <img src="/static/images/navigators.png" id="navigators">
+               <hr style="width:100%;">
+               <h4 class="text-center">
+                  <i class="fa fa-sign-in" aria-hidden="true"></i>
+                  <span class="english">Signing up and logging in</span>
+                  <span class="french">Création de compte et connexion</span>
+               </h4>
+               <ul class="no-indent">
+                  <li>
+                     <span class="english">
+                     You must first register
+                     <a href="#FAQ" data-toggle="tooltip" title="See FAQ for more details">
+                     (we require some basic information).</a>
+                     </span>
+                     <span class="french">
+                     Vous devez d'abord vous inscrire
+                     <a href="#FAQ" data-toggle="tooltip" title="Voir la FAQ for plus de détails">
+                     (nous avons besoin de quelques informations simples).</a>
+                     </span>
+                  </li>
+                  <li>
+                     <span class="english">
+                     Log in using the email address you registered with. Choose a username
+                     and the language you are going to speak in, <span class="font-weight-bold">which must be your mother tongue</span>.
+                     </span>
+                     <span class="french">
+                     Connectez-vous avec l'adresse e-mail que vous avez fournie lors de la création de votre
+                     compte. Choisissez un nom d'utilisateur et la langue dans
+                     laquelle vous allez parler, <span class="font-weight-bold">qui doit être votre langue maternelle</span>.
+                     </span>
+                  </li>
+                  <li>
+                    <span class="english">
+                      You will be talking to real people. To increase your chances of finding
+                      someone to chat to, fill in
+                      <a href="https://docs.google.com/spreadsheets/d/1UGa0PASo9P8wZPl89lMUw3gIu4QhoH9cGW8OoZepq-c/edit?usp=sharing" target="_blank">this spreadsheet</a> with your availabilities.
+                      Or try your luck and log in straight away!
+                    </span>
+                    <span class="french">
+                      Vous allez parler avec de vraies personnes. Pour augmenter vos chances de trouver quelqu'un avec qui discuter, vous pouvez remplir
+                      <a href="https://docs.google.com/spreadsheets/d/1UGa0PASo9P8wZPl89lMUw3gIu4QhoH9cGW8OoZepq-c/edit?usp=sharing" target="_blank">ce planning</a>.
+                      Ou bien tentez vos chances en vous connectant tout de suite.
+                    </span>
+
+                  </li>
+               </ul>
+               <hr style="width:100%;">
+               <h4 class="text-center">
+                  <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                  <span class="english">Dialoguing</span>
+                  <span class="french">Dialogue</span>
+               </h4>
+               <ul class="no-indent">
+                  <li>
+                     <span class="english">
+                     Once logged in, invite someone by clicking on their username or wait
+                     for someone to invite you. You can accept or refuse an invitation
+                     to dialogue. If the request is accepted, you will be taken
+                     to the dialogue screen. One of you is assigned the first turn, and after that,
+                     you are free to dialogue as you please.
+                     </span>
+                     <span class="french">
+                       Une fois connecté(e), invitez quelqu'un à dialoguer en cliquant
+                       sur son nom d'utilisateur/trice ou attendez que quelqu'un vous invite.
+                       Lorsque vous recevez une invitation à dialoguer, vous pouvez l'accepter ou la refuser.
+                       Si votre invitation est acceptée, vous serez automatiquement transféré(e) sur la page de dialogue.
+                       Vous ou la personne avec qui vous aller discuter sera choisi(e) par le système pour commencer le dialogue. Vous serez
+                       ensuite libres de dialoguer comme vous le souhaitez.
+                     </span>
+                  </li>
+                  <li>
+                     <span class="english">
+                     You will both be presented with a setting (at the top of the chat box)
+                     in which the dialogue will take place. E.g. <span class="bold">
+                     "You are in a forest"</span> and your role in the dialogue.
+                     </span>
+                     <span class="french">
+                       Un scénario vous sera proposé (en haut de la boîte
+                       de dialogue), qui devra servir de cadre à votre dialogue. Par exemple, le système
+                       pourra suggérer le scénario "Vous êtes perdu(e)s dans une forêt" et vous attribuer
+                       un rôle dans ce scénario.
+                     </span>
+                  </li>
+                  <li>
+                     <span class="english">
+                     Now improvise a dialogue in the setting provided,
+                     as in improvised drama or role-play. I.e. play a made-up character and not yourself.
+                     The dialogues are to be like written drama transcriptions, rather than chat messages.
+                     We recommend writing at least 15 sentences each (you will receive a message when this happens).
+                     You can write more, but it is even more useful for us to have more dialogues rather than fewer very long ones.
+                     </span>
+                     <span class="french">
+                     Vous pouvez alors démarrer le dialogue en respectant le scénario qui vous a été
+                     attribué, comme si vous faisiez de l'improvisation théâtrale ou un jeu de rôles.
+                     En particulier, vous devez jouer un personnage fictif et non pas vous-même.
+                     Les dialogues doivent respecter les règles d'orthographe et de grammaire (évitez en
+                     particulier les pratiques de type «&nbsp;langage SMS&nbsp;»), et ressembler à un script de
+                     film ou à une scène de théâtre plutôt qu'à une conversation par messagerie instantanée (chat).
+                     Nous recommandons d'échanger un minimum de 15 phrases par personne dans un dialogue (vous recevrez
+                     un message quand vous aurez atteint ce seuil). Vous pouvez en
+                     écrire plus, mais il est encore plus utile pour nous d'avoir plus de dialogues plutôt que moins de
+                     dialogues très longs.
+                     </span>
+                  </li>
+               </ul>
+                  <table class="table">
+                     <tr>
+                        <th class="text-left"><i class="fa fa-frown-o" aria-hidden="true"></i>
+                           <span class="english">
+                           Please do not use:
+                           </span>
+                           <span class="french">
+                             Évitez&nbsp;:
+                           </span>
+                        </th>
+                        <th class="text-left"><i class="fa fa-smile-o" aria-hidden="true"></i>
+                           <span class="english">
+                           Please do use:
+                           </span>
+                           <span class="french">
+                             Essayez&nbsp;:
+                           </span>
+                        </th>
+                     </tr>
+                     <tr>
+                        <td>
+                           <ul class="no-indent">
+                              <li>
+                                 <span class="english">emoticons</span>
+                                 <span class="french">d'utiliser des émoticônes (smileys)</span>
+                              </li>
+                              <li>
+                                 <span class="english">SMS speech</span>
+                                 <span class="french">d'utiliser un language de type SMS</span>
+                              </li>
+                              <li>
+                                 <span class="english">your partner's username, your own username or personal details</span>
+                                 <span class="french">de mentionner votre nom d'utilisateur et celui de l'autre personne,
+                                   ainsi que toute information personnelle</span>
+                              </li>
+                           </ul>
+                        </td>
+                        <td>
+                           <ul class="no-indent">
+                              <li>
+                                 <span class="english">your best spelling, grammar and punctuation</span>
+                                 <span class="french">de respecter les règles d'orthographe et de grammaire</span>
+                              </li>
+                              <li>
+                                <span class="english">the correct gender of you and your partner (for instance when using pronouns)</span>
+                                 <span class="french">de respecter le genre de l'autre utilisateur et le vôtre (par exemple dans l'emploi des pronoms)</span>
+                              </li>
+                              <li>
+                                 <span class="english">your imagination! You can refer to
+                                 imaginary objects/people around you
+                                 </span>
+                                 <span class="french">
+                                 de faire usage de votre imagination&nbsp;! Vous pouvez inventer des objets et des personnes imaginaires
+                                 autour de vous et y faire référence
+                                 </span>
+                              </li>
+                           </ul>
+                        </td>
+                     </tr>
+                  </table>
+                  <hr style="width:100%;">
+                  <h4 class="text-center">
+                     <i class="fa fa-smile-o" aria-hidden="true"></i>
+                     <span class="english">Evaluation</span>
+                     <span class="french">Évaluation</span>
+                  </h4>
+                  <span class="english">
+                  You will evaluate the other person's translated utterances by selecting one of the smileys:
+                  </span>
+                  <span class="french">
+                    Vous devrez évaluer les traductions des messages de la personne avec qui vous discutez, en sélectionnant pour chacun d'eux une émoticône&nbsp;:
+                  </span>
+                  <img src="/static/images/eval.png" style="width:80px">
+                  <ul>
+                     <li>
+                        <span class="english">
+                        green smiley face: "perfect"
+                        </span>
+                        <span class="french">
+                          visage vert souriant&nbsp;:  «&nbsp;parfait&nbsp;»
+                        </span>
+                     </li>
+                     <li>
+                        <span class="english">
+                        orange neutral face: "ok but not perfect"
+                        </span>
+                        <span class="french">visage orange neutre&nbsp;: «&nbsp;ok, mais pas parfait&nbsp;»</span>
+                     </li>
+                     <li>
+                        <span class="english">sad red face: "poor"</span>
+                        <span class="french">visage rouge triste&nbsp;: «&nbsp;mauvais&nbsp;»</span>
+                     </li>
+                  </ul>
+                  <span class="english">
+                  When you select a smiley, you will be prompted
+                  to indicate what is wrong with the translation: grammar, meaning, word choice, style, coherence,
+                  plus any extra comments to make your evaluation clearer. See FAQ for some examples.
+                  </span>
+                  <span class="french">
+                  Lorsque vous sélectionnez une émoticône, vous serez invité(e) à indiquer le cas échéant
+                  quels étaient les problèmes de traduction (grammaire, sens, choix des mots,
+                  style, cohérence) et éventuellement à formuler des commentaires additionnels qui pourraient
+                  préciser votre évaluation. Voir la FAQ pour quelques exemples.
+                  </span>
+                  <hr style="width:100%">
+                  <h4 class="text-center">
+                     <i class="fa fa-lightbulb-o" aria-hidden="true"></i>
+                     <span class="english">Purpose</span>
+                     <span class="french">Objectif de l'expérience</span>
+                  </h4>
+                  <span class="english">
+                  We will be using the dialogues to evaluate the machine translation systems
+                  and how easy communication was. The dialogues will be used to
+                  create a corpus of dialogues, which will be freely distributed for research purposes,
+                  and also used to analyse the machine translation models.
+                  Be natural, spontaneous and creative! However, please avoid
+                  making your sentences purposefully difficult in order to trick the machine translation
+                  system. Thank you!
+                  </span>
+                  <span class="french">
+                    Nous utiliserons les dialogues collectés pour évaluer les systèmes
+                    de traduction automatique et la facilité avec laquelle il est possible
+                    de communiquer grâce à eux. Les dialogues seront utilisés pour créer un corpus
+                    qui sera distribuée librement pour des fins de recherche.
+                    Il sera également utilisé pour analyser les modèles de traduction automatique. Soyez naturel(le),
+                    spontané(e) et créatif/ve&nbsp;! Cependant, évitez de tenter délibérément de piéger le système de
+                    traduction en écrivant intentionnellement des phrases trop complexes. Merci&nbsp;!
+                  </span>
+                  <br>
+                  <hr style="width:100%">
+                  <a href="/register" id="nav-register-link" class="btn btn-primary login-button btn-block btn-md">
+                  Register
+                  </a>
+                  <a href="/login" id="nav-login-link" class="btn btn-primary login-button login-long btn-block btn-md">
+                  Already registered? Go to login
+                  </a>
+                  <hr style="width:100%">
+
+
+
+                  <a id="FAQ">
+                     <h3>FAQ</h3>
+                  </a>
+                  <br>
+                  <p><span class="bold">
+                     <span class="english">
+                     What if I don't understand what my partner says?
+                     </span>
+                     <span class="french">
+                     Que faire si je ne comprend pas ce que dit l'autre personne&nbsp;?
+                     </span>
+                     </span><br>
+                     <span class="english">
+                     As in real life, speak about the problem with your partner. Say that you don't
+                     understand and try to continue the dialogue as best as possible.
+                     </span>
+                     <span class="french">
+                     Comme dans la vraie vie, parler de ce problème avec la personne.
+                     Dites que vous n'avez pas compris quelque chose et essayez de continuer le dialogue
+                     le mieux possible.
+                     </span>
+                  </p>
+                  <p><span class="bold">
+                     <span class="english">
+                     When evaluating, what do the error types correspond to?
+                     </span>
+                     <span class="french">
+                     Pour l'évaluation, à quoi correspondent les types d'erreurs&nbsp;?
+                     </span>
+                     </span>
+                  </p>
+                  <ul>
+                     <li>
+                        <span class="english">
+                        Grammatical: the sentence is agrammatical. A few examples:
+                        </span>
+                        <span class="french">
+                        Grammaire&nbsp;: la phrase est agrammaticale. Quelques exemples&nbsp;:
+                        </span>
+                        <ul>
+                           <li>
+                              <span class="english">Wrong number agreement: "The boy are there."</span>
+                              <span class="french">Faute d'accord en nombre&nbsp;: "Les garçons est là"
+                              </span>
+                           </li>
+                           <li>
+                              <span class="english">Missing articles: "I want dog."</span>
+                              <span class="french">Déterminants manquants&nbsp;: "Je veux chien."
+                              </span>
+                           </li>
+                           <li>
+                              <span class="english">Wrong use of tenses</span>
+                              <span class="french">Mauvaise utilisation des temps</span>
+                           </li>
+                           <li>
+                              <span class="english">(For French) Wrong gender agreement</span>
+                              <span class="french">Faute d'accord en genre</span>
+                           </li>
+                           <li>etc.</li>
+                        </ul>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Meaning: the sentence does not appear to make sense, e.g.:
+                        </span>
+                        <span class="french">
+                        Sens&nbsp;: la phrase n'a pas vraiment de sens. Par exemple&nbsp;:
+                        </span>
+                        <ul>
+                           <li>
+                              <span class="english">
+                              I was told by my <span class="font-italic">avocado</span> that a sentence was likely.
+                              </span>
+                              <span class="french">
+                              Il pleut des chats et des chiens.<br>
+                              Hier il viendra.
+                              </span>
+                           </li>
+                        </ul>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Word choice: a poor word choice was made, e.g.:
+                        </span>
+                        <span class="french">
+                        Choix des mots&nbsp;: Un mauvais choix des mots. Par exemple&nbsp;:
+                        </span>
+                        <ul>
+                           <li>
+                              <span class="english">
+                              "I did you a chocolate cake" (instead of "I made you a chocolate cake.")<br>
+                              "He took an attempt" (instead of "He made an attempt")
+                              </span>
+                              <span class="french">
+                              "Les chats semblent beaucoup plus classe" ("semblent" au lieu de "ont l'air")<br>
+                              "Ayez un regard" (au lieu de "Jetez un coup d'œil")
+                              </span>
+                           </li>
+                        </ul>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Style: the level of formality is inconsistent or language usage is strange,
+                        although grammatically well-formed and understandable, e.g.:
+                        </span>
+                        <span class="french">
+                        Style&nbsp;: le niveau de langue (famillier vs.&nbsp;soutenu) n'est pas cohérent ou l'utilisation
+                        de la langue est étrange, bien que la phrase soit grammaticalement
+                        correcte et compréhensible&nbsp;:
+                        </span>
+                        <ul>
+                           <li>
+                              <span class="english">
+                              Strange/unnatural utterances
+                              </span>
+                              <span class="french">
+                              Des énonces étranges ou peu naturels
+                              </span>
+                           </li>
+                           <li>
+                              <span class="english">
+                              Wrong level of formality: "What's up" in a job interview
+                              </span>
+                              <span class="french">
+                              Mauvais niveau de langue: "Salut&nbsp;!" dans un entretien d'embauche
+                              </span>
+                           </li>
+                           <li>etc.</li>
+                        </ul>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Coherence: Lack of consistency with previous utterances or the context
+                        </span>
+                        <span class="french">
+                        Cohérence&nbsp;: manque de cohérence avec les énoncés précédents ou le contexte&nbsp;:
+                        </span>
+                        <ul>
+                           <li>
+                              <span class="english">
+                              Wrong pronoun used that refers to something previously mentioned
+                              </span>
+                              <span class="french">
+                              Mauvais pronom (par exemple, «&nbsp;elle&nbsp;» en référence à un homme)
+                              </span>
+                           </li>
+                           <li>
+                              <span class="english">
+                              (For French) Inconsistent use of "tu" and "vous"
+                              </span>
+                              <span class="french">
+                              Utilisation incohérente de «&nbsp;tu&nbsp;» et de «&nbsp;vous&nbsp;»
+                              </span>
+                           </li>
+                           <li>
+                              <span class="english">
+                              Word choice is inconsistent with what was previously said (e.g. "I'm angry! – What do you mean by 'upset'?")
+                              </span>
+                              <span class="french">
+                              Un choix de mots incohérent par rapport à ce qui a été dit précédemment (par exemple "Je suis fâché! – Qu'est-ce que tu veux dire par 'en colère'&nbsp;?")
+                              </span>
+                           </li>
+                           <li>etc.</li>
+                        </ul>
+                     </li>
+                  </ul>
+                  <p>
+                     <span class="bold">
+                     <span class="english">
+                     Why do you need personal information?
+                     </span>
+                     <span class="french">
+                     Pourquoi avez-vous besoin d'informations personnelles&nbsp;?
+                     </span>
+                     </span><br>
+                     <span class="english">
+                     This enables us to evaluate whether certain aspects of the conversation
+                     (e.g. gender marking in French) are correctly translated or not. It allows
+                     us to analyse how machine translation systems react to the differences in language use, which
+                     depends for instance on the age of the user. The personal
+                     information that will be distributed in the resulting corpus is the following:
+                     </span>
+                     <span class="french">
+                     Les informations personnelles que nous vous demandons nous permettent d'évaluer si certains aspects des
+                     conversations (par exemple, l'accord du genre en français) sont correctement
+                     traduits ou pas. Elles nous permettent aussi d'analyser comment
+                     les systèmes de traduction automatique réagissent aux différentes façons de s'exprimer, qui dépendent
+                     par exemple de l'âge de l'utilisateur/trice. Les informations
+                     personnelles qui seront distribuées dans le corpus seront les suivantes:
+                     </span>
+                  <ul>
+                     <li>
+                        <span class="english">
+                        Your age bracket (18-24, 25-34, 35-44, etc.)
+                        </span>
+                        <span class="french">
+                        Votre tranche d'âge (18-24, 25-34, 35-44, etc.)
+                        </span>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Your gender
+                        </span>
+                        <span class="french">
+                        Votre genre
+                        </span>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Your French and English ability
+                        </span>
+                        <span class="french">
+                        Votre niveau de langue en français et en anglais
+                        </span>
+                     </li>
+                     <li>
+                        <span class="english">The other languages you speak</span>
+                        <span class="french">Les autres langues que vous parlez</span>
+                     </li>
+                     <li>
+                        <span class="english">
+                        Whether or not you have studied/worked in Natural Language Processing or research
+                        </span>
+                        <span class="french">
+                        Si vous avez déjà étudié ou travaillé en Traitement
+                        Automatique des Langues ou dans la recherche
+                        </span>
+                     </li>
+                  </ul>
+                  <p><span class="bold">
+                     <span class="english">Why do you need to know speaker gender?</span>
+                     <span class="french">
+                     Pourquoi avez-vous besoin de connaître le genre des locuteurs&nbsp;?
+                     </span>
+                     </span><br>
+                     <span class="english">
+                     Speaker gender can be important in certain languages in terms of which words agree
+                     with the gender of the speaker (e.g. French). We therefore ask you to choose between
+                     male and female for practical reasons. If you do not identify with either gender,
+                     please choose the one by which you wish to be identified linguistically (i.e. would
+                     you prefer to be referred to as "he" or "she"?). The important thing is to be coherent when you dialogue in
+                     your use of gender.
+                     </span>
+                     <span class="french">
+                     Le genre du locuteur est important dans certaines langues, lorsque
+                     certains mots s'accordent avec le genre du locuteur (par exemple en français).
+                     Nous vous demandons donc de choisir entre les genre masculin et féminin
+                     pour des raisons pratiques. Si vous ne vous identifiez pas avec un
+                     de ces genres, merci de choisir celui par lequel vous préféreriez être identifié linguistiquement (c'est-à-dire préférez-vous
+                     que l'on parle de vous en utilisant «&nbsp;il&nbsp;» ou «&nbsp;elle&nbsp;»&nbsp;?). Ce qui est
+                     important, c'est que vous soyez cohérent(e) dans l'utilisation de votre genre lorsque
+                     vous dialoguez.
+                     </span>
+                  </p>
+
+                  <br>
+                  <small>Credits: Icons made by <a href="http://www.freepik.com/">Freepik</a> from www.flaticon.com</small>
+            </div>
+
+         </div>
+
+      </div>
+   </div>
+   <footer class="footer">
+     <div class="container">
+       <span class="english">
+       A problem with this website? Contact bawden[at]limsi.fr
+       </span>
+       <span class="french">
+       Vous rencontrez un problème avec ce site&nbsp;? Contactez bawden[at]limsi.fr
+       </span>
+     </div>
+   </footer>
+</body>
+</html>

@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<head>
+  <title>DiaBLa</title>
+  <meta charset="UTF-8">
+  <meta name="description" content="Dialogue Bilingue / Bilingual DiaLogue">
+  <meta property="og:title" content="DiaBLa">
+  <meta property="og:description" content="Dialogue Bilingue / Bilingual DiaLogue">
+  <meta property="og:image" content="{{ url_for('static', filename='images/eval.png') }}">
+  <link rel="shortcut icon" href="#" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,  minimum-scale=1.0">
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='main.css') }}">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='register.css') }}">
+  <!-- Website Font style -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+  <!-- Google Fonts -->
+  <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+  <!--  Javascript -->
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script>
+    var socket;
+    var first = true;
+    var language = "english";
+
+    $(document).ready(function(){
+       socket = io.connect('http://' + document.domain + ":" + location.port + '/', extra_headers={'encoding': 'utf-8'});
+       //socket = io.connect(null, {port: 8080, rememberTransport: false});
+
+       socket.on('connect', function() {
+           socket.emit('joined', {});
+           //$("#test").append(createEvalButtons({"utt_id": 1}))
+
+           //if (childNodes.length == 0) {
+            // alert("Your navigator is not sufficiently up-to-date. Elements will not display correctly. Please update or try another navigator!")
+           //}
+
+           // change type of input box to email (rather than text)
+           $("input[name='email']")[0].setAttribute("type", "email");
+
+           reset_lang(language);
+
+       });
+
+       $('#register').click(function() {
+         socket.emit('register', "");
+       });
+
+       // tooltips for final evaluation form
+       $('[data-toggle="tooltip"]').tooltip();
+
+       socket.on('account_registered', function(data) {
+           $(login-info).innerHTML = "{{ msg }}";
+       });
+
+       function createEvalButtons(data) {
+           var evalDiv = document.createElement('div');
+           // create individual smileys
+           var face1 = createSmiley({"mood": "smile-o", "utt_id": data.utt_id, "idx": 1});
+           var face2 = createSmiley({"mood": "meh-o", "utt_id": data.utt_id, "idx": 2});
+           var face3 = createSmiley({"mood": "frown-o", "utt_id": data.utt_id, "idx": 3});
+
+           // append all elements to main div
+           $(evalDiv).append(face1);
+           $(evalDiv).append(face2);
+           $(evalDiv).append(face3);
+           // add onclick events to the smileys
+           //createEvalLinks({'utt_id': data.utt_id, 'mainDiv': evalDiv});
+           return evalDiv;
+       }
+
+       // Create one smiley for evaluation (without onclick)
+       function createSmiley(data) {
+         var evalid = data.utt_id + "-" + data.mood;
+         var linkicon = document.createElement('a');
+         linkicon.href = "#";
+         linkicon.setAttribute("id", "popover-"+data.utt_id+"-"+data.idx);
+         var icon = document.createElement('i');
+         icon.id = "smiley-"+data.utt_id+"-"+data.idx;
+         icon.className = "fa eval-smile fa-" + data.mood;
+         //if (data.mood == "smile-o") {
+         //  linkicon.classList.add("selected-eval");
+         //}
+         $(linkicon).append(icon);
+         linkicon.style.display = "none";
+         return linkicon;
+       }
+
+       // Check error message for email address and show log out button if already logged in
+       if (~$("#email").parent().next("span.english").text().indexOf("already logged in")) {
+         // make a button
+         button = document.createElement('a');
+         button.classList = "btn btn-primary btn-sm btn-block";
+         button.innerHTML = "Or (if you are <span class='bold'>very</span> sure) click here to log this user out";
+         button.setAttribute("onclick", "log_user_out()");
+         document.getElementById("logout_button").append(button);
+         $("#logout_button").show();
+         //$(".error.english").hide();
+      }
+      if (~$("#email").parent().next("span.french").text().indexOf("connecté(e) ailleurs")) {
+           // make a button
+           button = document.createElement('a');
+           button.classList = "btn btn-primary btn-sm btn-block";
+           button.innerHTML = "Ou (si vous êtes <span class='bold'>vraiment</span> sûr(e) de vous) cliquez ici pour déconnecter cet(te) utilisateur/trice.";
+           button.setAttribute("onclick", "log_user_out()");
+           document.getElementById("logout_button").append(button);
+           $("#logout_button").show();
+           //$(".error.french").hide();
+       }
+
+       if (first && window.location.href.indexOf("#registered") > -1) {
+         var login_info = document.getElementById("login_info");
+         login_info.innerHTML = "";
+         var close = document.createElement('button');
+         close.setAttribute("type", "button");
+         close.setAttribute("class", "close");
+         close.setAttribute("data-dismiss", "alert");
+         close.innerHTML = "&times";
+         login_info.append(close);
+         if (language == "english") {
+           login_info.append("Thank you \
+            for registering! You can now log in with the e-mail address \
+            you provided.");
+          } else {
+            login_info.append("Merci \
+             d'avoir créé un compte! Vous pouvez maintenant vous connecter \
+             avec l'adresse e-mail que vous avez utilisée.");
+          }
+          $(login_info).show();
+          first = false;
+       }
+
+    });
+
+    function reset_lang(){
+      if (window.location.hash == "#french" || window.location.hash == "#english"){
+        language = window.location.hash.split('#')[1];
+      }
+      else if ("{{ language }}" != "" && "{{ language }}" != "None") {
+        language = "{{ language }}";
+      }
+      else {
+        language = "english";
+      }
+      if (language == "french") {
+          // set placeholders of input
+          $("#email")[0].setAttribute("placeholder", "Adresse e-mail");
+          $("#name")[0].setAttribute("placeholder", "Nom d'utilisateur");
+          //$("#language")[0].setAttribute("placeholder", "Langue");
+
+          // Change values to French
+          $("#language>option[value='english']")[0].textContent = "Anglais";
+          $("#language>option[value='french']")[0].textContent = "Français";
+        }
+      else {
+
+          // set placeholders of input
+          $("#email")[0].setAttribute("placeholder", "E-mail address");
+          $("#name")[0].setAttribute("placeholder", "Username");
+          //$("#language")[0].setAttribute("placeholder", "Language");
+          // Change values to French
+          $("#language>option[value='english']")[0].textContent = "English";
+          $("#language>option[value='french']")[0].textContent = "French";
+        }
+        $("span."+language).show();
+
+      if ("{{ failed_attempt }}" != "True" && language == "french"){
+        document.getElementById("language").selectedIndex = 1;
+      }
+      else if ("{{ failed_attempt }}" != "True" && language == "english"){
+        document.getElementById("language").selectedIndex = 0;
+      }
+   }
+
+    function change_language(chosen_language){
+      // visualise the text for the language
+      var langs = ["english", "french"];
+      window.location.hash = chosen_language;
+      for (var idx in langs){
+       if (langs[idx] == chosen_language){
+         $("." + langs[idx]).show();
+       }
+       else {
+         $("." + langs[idx]).hide();
+       }
+       reset_lang();
+     }
+    }
+    // log user out
+    function log_user_out(){
+      email = $("#email").val();
+      socket.emit("log_user_out", {"email": email});
+      $("#logout_button").empty();
+      $("#logout_button").hide();
+      $("#email").parent().next("span.english").empty();
+      $("#email").parent().next("span.french").empty();
+    }
+  </script>
+</head>
+<body>
+  <div style="display:none;" id="test">
+  </div>
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <ul class="nav nav-tabs">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+          <!--<i class="fa fa-language"></i>-->
+          &nbsp;LANG.
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item nav-item" onclick="change_language('english')">ENGLISH</a>
+            <a class="dropdown-item nav-item" onclick="change_language('french')">FRANÇAIS</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link abs" href="/register">
+          <span class="english">REGISTER</span>
+          <span class="french">CRÉER&nbsp;UN&nbsp;COMPTE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link abs" href="/login">
+          <span class="english">LOG IN</span>
+          <span class="french">SE&nbsp;CONNECTER</span>
+          </a>
+        </li>
+      </ul>
+      <div class="panel-heading">
+        <div class="panel-title text-left">
+
+          <h1 class="my-4">
+            <!--<img src="{{ url_for('static', filename='images/diabla.png') }}" id="diabla">-->
+            <div style="display:inline;">
+            <span class="english">DiaBLa Login</span>
+            <span class="french">Connexion à DiaBLa</span>
+            <span class="font-italic">
+            <small>
+            <span class="english">BiLingual Dialogue</span>
+            <span class="french">Dialogue BiLingue</span>
+            </small>
+            </span>
+          </div>
+          </h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="main-center main-login ">
+          <div id="login_info" class="alert alert-success alert-dismissible"></div>
+          {% with messages = get_flashed_messages() %}
+          {% if messages %}
+          <div class="alert alert-warning alert-dismissible">
+            {% for message in messages %}
+            {{ message }}&nbsp;
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endwith %}
+          {% block body %}{% endblock %}
+          <form method="POST" class="form-horizontal" action="#">
+            {{ form.hidden_tag() }}
+            <!-- Email address = id -->
+            <div class="form-group">
+              <label for="email" class="cols-sm-2 control-label">
+              <span class="english">
+                <a href="#" data-toggle="tooltip" title="We will use this only to identify you when you log in. You can invent an email address if you do not wish to use your real one.">
+                  E-mail address
+                </a>
+                </span>
+              <span class="french">
+                <a href="#" data-toggle="tooltip" title="Nous l'utiliserons uniquemnet pour vous identifier au moment du login. Vous pouvez inventer une addresse-mail si vous ne souhaitez pas utiliser la vôtre.">
+                  Adresse e-mail
+                </a>
+                </span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text">
+                  <i class="fa fa-envelope" aria-hidden="true"></i>&nbsp;&nbsp;
+                  </span>
+                  {{ form.email(class_="form-control", placeholder="E-mail address",
+                  oninvalid_="this.setCustomValidity('Please Enter valid e-mail')") }}
+                </div>
+                <span class="error english">
+                {% for error in form.email.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                {% for error in form.email.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+                <div id="logout_button" style="display:none"></div>
+              </div>
+            </div>
+            <!-- Login name -->
+            <div class="form-group">
+              <label for="name" class="cols-sm-2 control-label">
+              <span class="english">
+                <a href="#" data-toggle="tooltip" title="This is the name by which other users will see you
+                  (they will never see your e-mail address).">
+                  Username
+                </a>
+                </span>
+              <span class="french">
+                <a href="#" data-toggle="tooltip" title="C'est le nom par lequel les autres utilisateurs/trices
+                vous verront (ils ne verront jamais votre adresse e-mail).">
+                Nom d'utilisateur
+              </a>
+              </span>
+
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text">
+                  <i class="fa fa-user" aria-hidden="true"></i>&nbsp;&nbsp;
+                  </span>
+                  {{ form.name(class_="form-control", placeholder="Username") }}
+                </div>
+                <span class="error english">
+                {% for error in form.name.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                {% for error in form.name.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+            <!-- Language (French or English) -->
+            <div class="form-group">
+              <label for="language" class="cols-sm-2 control-label">
+              <span class="english">Language (Select your native language)</span>
+              <span class="french">Langue (Sélectionner votre langue maternelle)</span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text">
+                  <i class="fa fa-language" aria-hidden="true"></i>&nbsp;&nbsp;
+                  </span>
+                  {{ form.language(class_="form-control") }}
+                </div>
+                <span class="error english">
+                {% for error in form.language.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                {% for error in form.language.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+            <br>
+            <!-- Login (or register) -->
+            <div class="form-group">
+              {{ form.login(class_="btn btn-primary btn-lg btn-block login-button") }}
+            </div>
+          </form>
+          <a href="/register" class="btn btn-sm btn-block btn-light">
+            <span class="english">Not registered yet? Register here</span>
+            <span class="french">Pas encore enregistré(e)&nbsp;? Enregistrez-vous ici</span>
+          </a>
+          <br>
+          <p>
+          </p>
+        </div>
+      </div>
+    </div>
+    <footer class="footer">
+      <div class="container">
+        <span class="english">
+        A problem with this website? Contact bawden[at]limsi.fr
+        </span>
+        <span class="french">
+        Vous rencontrez un problème avec ce site&nbsp;? Contactez bawden[at]limsi.fr
+        </span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

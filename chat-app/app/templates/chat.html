@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+  <head>
+    <title>DiaBLa</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" href="#" />
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel=stylesheet type=text/css href="{{ url_for('static', filename='main.css') }}">
+    <!--<link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel = "stylesheet">-->
+
+    <!-- Website Font style -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+
+    <!-- Google Fonts -->
+    <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+
+    <!--  Javascript -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <!--<script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+
+    <script>
+      var socket;
+      var valid_navigate = true;
+      $(document).ready(function(){
+          socket = io.connect('http://' + document.domain + ":" + location.port + '/chat');
+          /* ------------------- Connection ----------------------*/
+          var timeout;
+          // On connection, let server know and initialise navbar info
+          socket.on('connect', function() {
+              var nav = window.navigator.userAgent;
+              socket.emit('joined', {"useragent": nav});
+              socket.emit('ping-chat', {'idnum': "{{ idnum }}" , "on_connect": "True"} );
+              var name_str = '<i class="fa fa-user"></i>&nbsp;{{ name }}';
+              var lang_str = '<i class="fa fa-language"></i>&nbsp;';
+              if ("{{ language }}" == "french"){
+                lang_str += "FR";
+              }
+              else {
+                lang_str += 'EN';
+              }
+              document.getElementById("userinfo").innerHTML = name_str;
+              document.getElementById("language").innerHTML = lang_str;
+
+              // visualise the text for the language
+              $("span.{{ language }}").show();
+
+              // are we evaluating?
+              if ("{{ finished }}" == "True") {
+                $("#final-evaluation").modal('show').on('hide.bs.modal', function(e){
+                  e.preventDefault();
+                });
+                // disable chat text
+                document.getElementById('text').disabled = true;
+                var valid_navigate = false;
+              }
+              else if ("{{ other_person_finished }}" == "True"){
+                // disable chat text
+                document.getElementById('text').disabled = true;
+                if ("{{ language }}"== "english"){
+                  var txt = "The dialogue has finished. Please finish the evaluation, the click on 'end this dialogue'";
+                }
+                else {
+                  var txt = "Ce dialogue a été terminé. Merci de finir d'évaluer, puis cliquez sur 'finir ce dialogue'";
+                }
+                $("#text").attr("placeholder", txt);
+
+                // add to reminder what to do now
+                $("#reminder > span.english").empty();
+                $("#reminder > span.french").empty();
+                $("#reminder > span.english").append("The dialogue has ended. Once you have finished evaluating the sentence, click on 'end this dialogue' to finish and perform a short, global evaluation.");
+                $("#reminder > span.french").append("Le dialogue est terminé. Une fois que vous aurez fini d'évaluer les phrases, cliquez sur 'finir ce dialogue' pour finir et faire une petite évaluation globale.");
+                $("#reminder > span.{{ language }}").show();
+              }
+              else {
+                // change placeholder for input text
+                if ("{{ language }}" == "french") {
+                  $("#text").attr("placeholder", "Écrivez votre message ici. Appuyez sur ENTRÉE pour l'envoyer.");
+                }
+              }
+
+              // tooltips for final evaluation form
+              $('[data-toggle="tooltip"]').tooltip();
+
+              // Click on radio buttons
+              var techs = ["tech-0", "tech-1", "tech-2", "tech-3"];
+              for (var i; i<techs.length; i++){
+                document.getElementById(techs[i]).click();
+              }
+
+              // readjust text size
+              $("#chat-div").height($(window).height()-450);
+
+          });
+
+          function onElementHeightChange(elm, callback){
+            var lastHeight = elm.clientHeight, newHeight;
+            (function run(){
+              newHeight = elm.clientHeight;
+              if( lastHeight != newHeight )
+              callback();
+              lastHeight = newHeight;
+
+              if( elm.onElementHeightChangeTimer )
+              clearTimeout(elm.onElementHeightChangeTimer);
+
+              elm.onElementHeightChangeTimer = setTimeout(run, 200);
+            })();
+          }
+
+
+          onElementHeightChange(document.body, function(){
+            // readjust text size
+            $("#chat-div").height($(window).height()-450);
+          });
+
+          // going to be disconnected
+          socket.on('disconnected_timeout', function(data){
+            if ("{{ language }}"== "french") {
+              var msg = "Vous avez été déconnecté(e) (timeout). Merci de vous réconnecter."
+            }
+            else {
+              var msg = "You have been disconnected (timeout). Please reconncect."
+            }
+            window.location.href = "{{ url_for('main.index') }}";
+            alert(msg);
+          });
+
+          socket.on('other_user_left', function(data){
+            if ("{{ language }}" == 'english'){
+              var msg = data.name + ' has left the dialogue. To go to the final evaluation step, click on \'end this dialogue\'.'
+            }
+            else {
+              var msg = data.name + ' a quitté le dialogue. Pour passer à l\'étape d\'évaluation finale, cliquez sur \'finir ce dialogue\'.'
+            }
+            socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+            alert(msg);
+            socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+            window.location.href = "{{ url_for('main.chat') }}";
+          });
+
+
+          /// confirm before navigating away
+          /*if (valid_navigate) {
+            alert(valid_navigate);
+            if (window.addEventListener === 'undefined') {
+              window.addEventListener = function(e, callback) {
+                return window.attachEvent('on' + e, callback);
+              }
+            }
+          }
+
+          if (valid_navigate && window.addEventListener('beforeunload', function() {
+            if ("{{ language }}" == "english") {
+              return 'Are you sure you want to navigate away? This will disconnect you.';
+            }
+            else {
+              return 'Êtes-vous sûr(e) de vouloir quitter cette page&nbsp;? Vous serez déconnecté(e).';
+           }
+
+         }));*/
+
+
+          // ping to server every 8 seconds to show that we are still here
+          setInterval(function(){
+              socket.emit('ping-chat', {'idnum': "{{ idnum }}", "on_connect": "False"} );
+          }, 15000);
+
+          // receive pong (re-establish connexion?)
+          socket.on('pong', function(data) {
+            // do nothing?
+          });
+
+          // Abandoned by the other user so dialogue must end
+          socket.on('abandoned', function(data) {
+            // Send a ping here
+            socket.emit('ping-chat', {'idnum': "{{ idnum }}", "on_connect": "False"} );
+            if ("{{ finished }}" == "False"){
+              socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+              alert(data.msg);
+              socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+
+
+             // evaluation form
+             //$("#final-evaluation").modal('show').on('hide.bs.modal', function(e){
+             //   e.preventDefault();
+             // });
+
+             //socket.emit('passively_left', {"idnum": "{{ idnum }}"});
+
+             // send any popover content not yet sent
+             var popovers = document.getElementsByClassName('static-popover');
+             for (var i = 0; i < popovers.length; i++) {
+               utt_id = popovers[i].id.replace("popover-", "");
+               verbatim_input({"utt_id": utt_id});
+             }
+             document.getElementById('text').disabled = true;
+             if ("{{ language }}"== "english"){
+               var txt = "The dialogue is over. Please finish the evaluation, then go to the final evaluation step by clicking on 'end this dialogue'.";
+             }
+             else {
+               var txt = "Ce dialogue a été terminé. Merci de finir d'évaluer, puis passez à l'étape d'évaluation finale en cliquant sur 'finir ce dialogue'.";
+             }
+             $("#text").attr("placeholder", txt);
+
+             // add to reminder what to do now
+             $("#reminder > span.english").empty();
+             $("#reminder > span.french").empty();
+             $("#reminder > span.english").append("The dialogue has ended. Once you have finished evaluating the sentence, go to the final evaluation step by clicking on 'end this dialogue'.");
+             $("#reminder > span.french").append("Le dialogue est terminé. Une fois que vous aurez fini d'évaluer les phrases, passez à l'étape d'évaluation finale en cliquant sur 'finir ce dialogue'.");
+             $("#reminder > span.{{ language }}").show();
+           }
+
+             //window.location.href = "{{ url_for('main.hub') }}";
+          });
+
+          // Minimum number of utterances reached
+          socket.on('minimum-reached', function(data) {
+            var msg= data["{{ language }}"];
+            document.getElementById("minimum-reached").innerHTML = msg;
+            $("#minimum-reached").show();
+          });
+
+          // Show personal info (profile pic, name) and chosen scenario
+          socket.on('scenario', function(data){
+              // refresh screen (problem with websocket connection) first time
+              if (data.first == "True") {
+                window.location.href = "{{ url_for('main.chat') }}";
+              }
+              document.getElementById("your-partner").innerHTML = "";
+              document.getElementById("you").innerHTML = "";
+
+              // Information about you and your partner
+              var them = data.their_gender + "_" + data.their_language;
+              var you = data.your_gender + "_" + data.your_language;
+
+              img_them=$("<img src={{ url_for('static', filename='images/') }}"+them+".png class=\"profile-pic\">");
+              img_you=$("<img src={{ url_for('static', filename='images/') }}"+you+".png class=\"profile-pic\">");
+
+              $('#your-partner').append(img_them);
+
+              $('#you').append(img_you);
+              if ("{{ language }}" == "french") {
+                /*if (data.their_gender == "m") {
+                  var str_them = "Lui";
+                }
+                else {
+                  var str_them = "Elle";
+                }*/
+
+                $('#your-partner').append($('<div>').text(data.their_name));
+                $('#you').append($('<div>').text("Vous"));
+              }
+              else {
+                $('#your-partner').append($('<div>').text(data.their_name));
+                $('#you').append($('<div>').text("You" ));
+              }
+
+              // get gender
+              if (data.their_gender == 'f'){
+                if ("{{ language }}" == "english"){
+                  var their_gender = 'female';
+                }
+                else {
+                  var their_gender = 'femme';
+                }
+              }
+              else {
+                if ("{{ language }}" == "english"){
+                  var their_gender = 'male';
+                }
+                else {
+                  var their_gender = 'homme';
+                }
+              }
+
+              // The main scenario
+              $('#scenario').empty();
+              if ("{{ language }}" == "english") {
+                $('#scenario').append("<span class='font-weight-bold xs-only'>You are talking to "+ data.their_name +" ("+their_gender+")<br></span>");
+                $('#scenario').append("<span class='text-danger'>Scenario: </span>");
+                var str_role = "Your role";
+                if (data.turn_number == 1) {
+                  var turn = "The first turn is yours!"
+                }
+                else {
+                  var turn = "Your partner will start the dialogue."
+                }
+              }
+              else {
+                $('#scenario').append("<span class='font-weight-bold xs-only'>Vous dialoguez avec "+ data.their_name +" ("+their_gender+")<br></span>");
+                $('#scenario').append("<span class='text-danger'>Scénario&nbsp;: </span>");
+                var str_role = "Votre rôle";
+                if (data.turn_number == 1) {
+                  var turn = "C'est à vous de commencer le dialogue, envoyez le premier message!"
+                }
+                else {
+                  var turn = "C'est à l'autre personne de commencer le dialogue, attendez de recevoir son premier message."
+                }
+              }
+              $('#scenario').append(data.scenario);
+              if (data.role != "" && data.role != undefined) {
+                $('#scenario').append(" <span class='text-danger'>" + str_role + ": </span> " + data.role);
+              }
+              $('#scenario').append("<br><span class='font-weight-bold'>" + turn +"</span>");
+
+
+              // Add techtype for final evaluation
+              if (data["tech_type"] != "None"){
+                set_tech(data["tech_type"]);
+              }
+          });
+
+          // Show that the other user is typing
+          socket.on('other_user_typing', function(data){
+            document.getElementById("typing_status").innerHTML = data.msg;
+          });
+
+          // Show that the other user has stopped typing
+          socket.on('other_user_stopped_typing', function(data){
+            current_text = document.getElementById("typing_status").innerHTML;
+            if (current_text.includes(data.typing_text)) {
+              document.getElementById("typing_status").innerHTML = "";
+            }
+          });
+
+          // Other user sent message
+          socket.on('other_user_sent_msg', function(data){
+            document.getElementById("typing_status").innerHTML = data.msg;
+          });
+
+          // Translating your own message
+          socket.on('translating', function(data){
+            document.getElementById("typing_status").innerHTML = data.msg;
+          });
+
+          // Finished translation
+          socket.on('finished_translation', function(data){
+            document.getElementById("typing_status").innerHTML = "";
+          });
+
+          // Translation error
+          socket.on('translation-error', function(data){
+            socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+            if ("{{ language }}" == "english") {
+              alert("There has been an error during translation. Please Contact the webmaster and try again later. = " + data.error);
+            } else {
+              alert("Une erreur s'est produite pendant le processus de traduction automatique. Merci de contacter le webmaster et de réessayer plus tard. = " + data.error);
+            }
+            socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+          });
+
+          // been logged out by somebody
+          socket.on("logged_out", function(data){
+            if ("{{ language }}" == "english") {
+              alert(data.english);
+            }
+            else {
+              alert(data.french);
+            }
+            // go back to the login page
+            window.location.href = "{{ url_for('main.index') }}";
+          });
+
+          // Make chat div resizable
+          //$( function() {
+          //  $( "#chat-container" ).resizable({ghost: true});
+          //} );
+
+          /* ------------------- Evaluation of dialogue ----------------------*/
+
+          // Create all smileys and their surrounding div
+          function createEvalButtons(data) {
+              var evalDiv = document.getElementById(data.utt_id);
+              // create individual smileys
+              var face1 = createSmiley({"mood": "smile-o", "utt_id": data.utt_id, "idx": 1});
+              var face2 = createSmiley({"mood": "meh-o", "utt_id": data.utt_id, "idx": 2});
+              var face3 = createSmiley({"mood": "frown-o", "utt_id": data.utt_id, "idx": 3});
+
+              // append all elements to main div
+              $(evalDiv).append(face1);
+              $(evalDiv).append(face2);
+              $(evalDiv).append(face3);
+              // add onclick events to the smileys
+              createEvalLinks({'utt_id': data.utt_id, 'mainDiv': evalDiv});
+              return evalDiv;
+          }
+
+          // Create one smiley for evaluation (without onclick)
+          function createSmiley(data) {
+            var evalid = data.utt_id + "-" + data.mood;
+            var linkicon = document.createElement('a');
+            linkicon.href = "#";
+            linkicon.setAttribute("id", "popover-"+data.utt_id+"-"+data.idx);
+            var icon = document.createElement('i');
+            icon.id = "smiley-"+data.utt_id+"-"+data.idx;
+            icon.className = "fa eval-smile fa-" + data.mood;
+            //if (data.mood == "smile-o") {
+            //  linkicon.classList.add("selected-eval");
+            //}
+            $(linkicon).append(icon);
+            linkicon.style.display = "none";
+            return linkicon;
+          }
+
+          // Create and return the evaluation form
+          function createEvalForm(data) {
+            var inner = document.createElement('div');
+            var problems = ["grammar", "meaning", "style", "word choice", "coherence", "other"];
+            var frproblems = ["grammaire", "sens", "style", "choix de mots", "coherence", "autre"];
+
+            for (i in problems) {
+              var input = document.createElement('input');
+              input.setAttribute("id", "checkbox-"+problems[i]+"-"+data.utt_id);
+              input.setAttribute("onclick", 'signalEvalProb({"problem": "'+problems[i]+'", "utt_id":'+ data.utt_id+'})');
+              input.setAttribute("type", "checkbox");
+              $(inner).append(input);
+              if ("{{ language }}" == "french") {
+                $(inner).append(" " + frproblems[i]);
+              }
+              else {
+                $(inner).append(" " + problems[i]);
+              }
+              if (i < problems.length-1){
+                $(inner).append(document.createElement('br'));
+              }
+            }
+            $(inner).append(document.createElement("hr"));
+            input = document.createElement('input');
+            input.setAttribute("type", "text");
+            input.setAttribute("class", "verbatim-input");
+            input.setAttribute("rows", 3);
+            input.setAttribute("id", "Verb-eval-" + data.utt_id);
+            if ("{{ language }}" == "english") {
+              input.setAttribute("placeholder", "Comments");
+            }
+            else {
+              input.setAttribute("placeholder", "Commentaires");
+            }
+            $(inner).append(input);
+            return inner;
+          }
+
+          // create a static popover to store form to eval one utterance
+          function createStaticPopover(data) {
+            var popover = document.createElement('div')
+            popover.setAttribute("class", "static-popover popover show bs-popover-top");
+            popover.setAttribute("x-placement", "top");
+            popover.setAttribute("data-container", "body");
+            popover.setAttribute("role", "tooltip");
+            popover.setAttribute("id", "popover-"+data.utt_id);
+            var arrow = document.createElement('div');
+            arrow.setAttribute("class", "arrow");
+            var h3 = document.createElement('h3');
+            h3.setAttribute("class", "popover-header");
+            if ("{{ language }}" == "english") {
+              h3.innerHTML = "What problems?";
+            }
+            else {
+              h3.innerHTML = "Quels problèmes&nbsp;?";
+            }
+            var content = document.createElement('div');
+            content.setAttribute("class", "popover-body");
+            var evalform = createEvalForm(data);
+
+            $(popover).append(arrow);
+            $(popover).append(h3);
+            $(content).append(evalform);
+            $(popover).append(content);
+            $(popover).append(content);
+
+            return popover;
+          }
+
+          /* ------------------- Sending/Receiving messages ------------------*/
+
+          socket.on("empty_messages", function(data){
+              $("#chat-tbody").empty()
+          });
+
+          // Receive a message, show it and create eval icons if necessary
+          socket.on('message', function(data) {
+              new_info = $('<tr class="chat-message">');
+              if ("{{ name }}" == data.name) {
+                msg_class = "me";
+              }
+              else {
+                msg_class = "you";
+              }
+              if (msg_class == "you") {
+                new_info.append($('<td class="eval-block" id="' + data.utt_id + '">'));
+              }
+              else {
+                new_info.append($('<div class="blank-eval">'));
+              }
+              new_message_container = $('<td class="' + msg_class + '">')
+              new_message = $('<div style="display:none;">').text(data.msg);
+              new_message_container.append(new_message);
+              new_info.append(new_message_container);
+
+              $('#chat-tbody').append(new_info);
+
+              // make message appear progressively
+              $(new_message).fadeIn(600);
+
+              // add eval bar to evaluate other user's utterance
+              if (msg_class == "you") {
+                createEvalButtons({"utt_id": data.utt_id});
+                // create popover and place by assigning height from top
+                var new_popover = createStaticPopover(data);
+                $("#eval-popover-container").append(new_popover);
+                // assign the height of the eval popover
+
+                var height;
+                if( navigator.userAgent.toLowerCase().indexOf('firefox') > -1 ) {
+                    /*height = $(document.getElementById(data.utt_id)).offset().top;
+                    scroll = document.getElementById(data.utt_id).scrollTop;
+                    var num = parseInt(data.utt_id) * 2;
+                    new_popover.style.top = (height - 515 - num) + "px";
+                    new_popover.setAttribute("original_offset", height - 515);*/
+                    //document.getElementById("test").innerHTML = new_popover.style.top;
+                    new_popover.style.top = ($(document.getElementById("instructions")).offset().top - 340) + "px";
+                    new_popover.setAttribute("original_offset",new_popover.style.top);
+                }
+                else {
+                  // not firefox
+                  height = document.getElementById(data.utt_id).offsetTop;
+                  new_popover.style.top = (height - 235) + "px"; //155
+                  new_popover.setAttribute("original_offset", height - 235);
+                }
+
+                //document.getElementById("test").innerHTML = new_popover.style.top +"-";
+
+                // add listener to verbatim input section to recover every change
+                //var verbatim_input = document.getElementById("Verb-eval-" + data.utt_id);
+                //verbatim_input.setAttribute("oninput", 'verbatim_input({"utt_id": '+data.utt_id+'})');
+
+                // fade in smileys
+                $('#popover-' + data.utt_id + "-1").fadeIn(600, "swing",
+                    function(){
+                      $('#popover-' + data.utt_id + "-1");//.addClass("selected-eval");
+                      //$('#popover-' + data.utt_id + "-1").toggle( "bounce", { times: 3 }, "slow" );
+                    });
+                $('#popover-' + data.utt_id + "-2").fadeIn(600);
+                $('#popover-' + data.utt_id + "-3").fadeIn(600);
+                //$('#popover-' + data.utt_id + "-1").addClass("selected-eval");
+
+              }
+              updateScroll();
+              document.getElementById("typing_status").innerHTML = "";
+
+              // add evaluation if already there (on refresh)
+              if (data["judgment"] != "None" && data["judgment"] != undefined){
+                document.getElementById(data.utt_id).children[data["judgment"]].classList.add("selected-eval");
+                document.getElementById("popover-"+data.utt_id).style.display = "none";
+              }
+              if (data["verbatim"] != "" && data["verbatim"] != undefined){
+                document.getElementById("Verb-eval-"+data.utt_id).value = data["verbatim"];
+              }
+              if (data["eval_problems"] != undefined && data["eval_problems"].length > 0){
+                for (var i = 0; i < data["eval_problems"].length; i++){
+
+                  document.getElementById("checkbox-"+data["eval_problems"][i]+"-"+data.utt_id).checked = true;
+                }
+              }
+
+          });
+
+          function getScrollHeight(element) {
+              var D = document;
+              return Math.max(
+                  Math.max(element.scrollHeight, D.documentElement.scrollHeight),
+                  Math.max(element.offsetHeight, D.documentElement.offsetHeight),
+                  Math.max(element.clientHeight, D.documentElement.clientHeight)
+              );
+          }
+
+          // update scroll to maintain focus on bottom of scroll
+          function updateScroll(){
+              var element = document.getElementById("chat-div");
+              element.scrollTop = getScrollHeight(element);//element.scrollHeight;
+          }
+
+          // Send message
+          $('#text').keypress(function(e) {
+              var text;
+              // currently writing
+              socket.emit('typing', {});
+              if (timeout != undefined) clearTimeout(timeout);
+              timeout = setTimeout(noLongerTyping, 1800);
+              var code = e.keyCode || e.which;
+              if (code!= 13 && !String.fromCharCode(code).match(/^[\w \?\!\'\"\.\,\;\:\(\)\]\_\-°$€¥£%«»“‘’”‹›«»\’\'\ʼéçÇàèêëîïìíÉÀÈÎÏÔÖöôœÆæòóõōøŒØÑñńŃÂÁÄÃãáâāåûüúùÙÜÚŪ\/]$/i)) {
+                $("#input_error").show();
+                //alert("hi - "+$('#text').val().substr(0,$('#text').val().length-1));
+              }
+              else {
+                  //alert("hey - "+ code);
+                  $("#input_error").hide();
+                  if (code == 13) {
+                    text = $('#text').val();
+                    //alert("ok - " + text.substr(0,text.length-1));
+                    if (text != "") {
+
+                      if (! text.match(/^[\w \?\!\'\"\.\,\;\:\(\)\_\-°$€¥£%«»“‘’”‹›\’\'\ʼéçÇàèêëîïìíÉÀÈÎÏÔÖöôœÆæòóõōøŒØÑñńŃÂÁÄÃ«»ãáâāåûüúùÙÜÚŪ\/]+$/i)) {
+                        $("#input_error").show();
+                      }
+                      else {
+                        $('#text').val('');
+                        socket.emit('text', {'msg': text});
+                      }
+                    }
+                    //alert("empty");
+                  }
+                }
+              });
+
+            $('#text').keydown(function(e) {
+              const key = e.key;
+              if (key === "Backspace" || key === "Delete") {
+                text = $('#text').val();
+                if (! text.substr(0,text.length-1).match(/^[\w \?\!\'\"\.\,\;\:\(\)\_\-°$€¥£%«»“‘’”‹›\’\'\ʼéçÇàèêëîïìíÉÀÈÎÏÔÖöôœÆæòóõōøŒØÑñńŃÂÁÄÃãáâāåûüúùÙÜ«»ÚŪ\/]+$/i) ){
+                  $("#input_error").hide();
+                }
+              }
+            });
+
+            document.body.addEventListener( 'keyup', function (e) {
+              if ( e.keyCode == 13 ) {
+                // Close all popovers
+                var popovers = document.getElementsByClassName('static-popover');
+                for (var i = 0; i < popovers.length; i++) {
+                  if ($(popovers[i]).is(':visible')){
+                  utt_id = popovers[i].id.replace("popover-", "");
+                    $(popovers[i]).fadeOut(600);
+                    // send the verbatim content
+                    verbatim_input({"utt_id": utt_id});
+                  }
+                  }
+                }
+              }
+            );
+
+          function noLongerTyping(data){
+            socket.emit('stopped_typing', {});
+          }
+
+      });
+
+      /* ------------------- Leaving/Log out ----------------------*/
+
+      // Check that all sentences have been evaluated before logging out
+      function all_evaluated() {
+        var evalblocks = $(".eval-block");
+        for (var idx = 0; idx < evalblocks.length; idx++){
+          if ($(evalblocks[idx]).children('.selected-eval').length == 0){
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // Leave the chat room and end the dialogue
+      function finish_dialogue() {
+        if (! all_evaluated()) {
+          if ("{{ language }}" == "english"){
+            var msg = "You must first evaluate all translated sentences by selecting a smiley for each sentence.";
+          }
+          else {
+            var msg = "Vous devez d'abord évaluer la qualité de la traduction des messages que vous avez reçus en sélectionnant une émoticône pour chacun d’entre eux."
+          }
+          socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+          alert(msg);
+          socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+          return;
+        }
+
+        // Only if all validated can we close the dialogue
+        if ("{{ language }}" == "english"){
+          var msg = 'Are you sure you want to end this dialogue?';
+        }
+        else {
+          var msg = 'Êtes-vous sûr de vouloir terminer ce dialogue?';
+        }
+        socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+        if (window.confirm(msg) == true) {
+
+            // let other user know
+            socket.emit('leave_dialogue', {"idnum": "{{ idnum }}"});
+
+            // fill out the evaluation form
+            $("#final-evaluation").modal('show').on('hide.bs.modal', function(e){
+              e.preventDefault();
+            });
+            //socket.emit('leave_dialogue', {"idnum": "{{ idnum }}"});
+            // go back to the hub
+            //window.location.href = "{{ url_for('main.hub') }}";
+        }
+        socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+      }
+
+      // Log out of the interface and redirect to the main page
+      function log_out() {
+          if ("{{ language }}" == "english"){
+            var msg = 'Are you sure you want to log out? This will end the dialogue';
+          }
+          else {
+            var msg = 'Êtes-vous sûr de vouloir vous déconnecter ? Cela mettra un terme au dialogue.';
+          }
+          if (window.confirm(msg) == true) {
+            // Automatically leave the dialogue
+            socket.emit('leave_dialogue', {"idnum": "{{ idnum }}", "log_out": true});
+
+
+            // send any popover content not yet sent
+            var popovers = document.getElementsByClassName('static-popover');
+            for (var i = 0; i < popovers.length; i++) {
+              utt_id = popovers[i].id.replace("popover-", "");
+              verbatim_input({"utt_id": utt_id});
+            }
+
+            socket.emit('logout', {});
+            socket.disconnect();
+            // go back to the login page
+            window.location.href = "{{ url_for('main.index') }}";
+          }
+      }
+
+      /* ------------------- Functions for eval ----------------------*/
+
+      // Add onclick functions to the smileys of a new utterance
+      function createEvalLinks(data) {
+        children = document.getElementById(data.utt_id).children;
+        for (var idx = 0; idx < 3; idx++ ){
+          child = children[idx];
+          child.setAttribute("onclick", 'selectSmiley({"utt_id": '+data.utt_id+', "idx":'+ idx+'}); return false;');
+        }
+      }
+
+      // Signal click on evaluation smiley
+      function selectSmiley(data) {
+        // message sent to server to indicate change in evaluation
+        socket.emit('eval-smiley', data);
+        mainDiv = document.getElementById(data.utt_id);
+        for (var idx = 0; idx < 3; idx++) {
+          if (idx == data.idx) {
+            mainDiv.children[idx].classList.add("selected-eval");
+          }
+          else if (mainDiv.children[idx].classList.contains("selected-eval")) {
+            mainDiv.children[idx].classList.remove("selected-eval");
+          }
+        }
+        // move element if scroll has been active
+        //var offset = document.getElementById('chat-div').scrollTop;
+        popover = document.getElementById("popover-"+data.utt_id);
+        //popover.setAttribute("original_offset", offset);
+        //document.getElementById("test").innerHTML = popover.style.top + " ";
+        realign_popover({"element": popover, "utt_id": data.utt_id});
+        //document.getElementById("test").innerHTML += popover.style.top;
+
+        // Only show the problems box if the translation was not perfect
+        if (data.idx > 0 && data.noshow == undefined) {
+         $("#popover-"+data.utt_id).fadeIn(300); // show the popover
+        }
+      }
+
+      // Signal evaluation problem to the server
+      function signalEvalProb(data) {
+        var el_id = "checkbox-" + data.problem + "-" + data.utt_id
+        var val = "no"; // default
+        var input_element = document.getElementById(el_id)
+        if ($(input_element).prop("checked")){
+          val = "yes";
+        }
+        data["value"] = val;
+
+        socket.emit('eval-problemtype', data);
+      }
+
+      // remember tech value for final evaluation
+      function select_tech(techid) {
+        socket.emit('eval-tech-value', {"idnum": "{{ idnum }}",
+                                        "techtype": techid});
+      }
+
+      function set_tech(techtype) {
+        $("#"+techtype).prop('checked', true);
+      }
+
+      // verbatim input for evaluation
+      function verbatim_input(data) {
+        var input_element = document.getElementById("Verb-eval-" + data.utt_id);
+        var value = $(input_element).prop("value");
+        socket.emit('verbatim_change', {"utt_id": data.utt_id, "value": value});
+      }
+
+      // Hide popovers when click outside the popover/its smileys
+      $(document).click(function(event) {
+        var popovers = $('.static-popover:visible');
+        var tid, utt_id;
+        tid = event.target.id;
+
+        // go through all popovers. If target event was not the specific
+        // popover or the smileys that initiate it, display none
+        for (var i = 0; i < popovers.length; i++) {
+          utt_id = popovers[i].id.replace("popover-", "");
+          //alert(tid + "*" + event.target.closest('#popover-'+utt_id));
+          // to display none, target must not be utterance smiley or popover
+          if ((! tid.includes("smiley-" + utt_id +"-")) &&
+            event.target.closest('#popover-'+utt_id) == undefined) {
+            $(popovers[i]).fadeOut(600);
+            // send the verbatim content
+            verbatim_input({"utt_id": utt_id});
+          }
+        }
+      });
+
+      // move popovers that are visible
+      function scroll_popovers(){
+        if( navigator.userAgent.toLowerCase().indexOf('firefox') <= -1 ) {
+          var popovers = $('.static-popover:visible');
+          var offset = document.getElementById('chat-div').scrollTop;
+          for (var i = 0; i < popovers.length; i++) {
+              utt_id = popovers[i].id.replace("popover-", "");
+              realign_popover({"element": popovers[i], "utt_id": utt_id});
+              //document.getElementById('test').innerHTML = $(popovers[i]).offset().top;
+              //desiredPosition
+            }
+        }
+      }
+
+      function realign_popover(data){
+        if( navigator.userAgent.toLowerCase().indexOf('firefox') <= -1 ) {
+          var offset = data.element.getAttribute("original_offset");
+          var maindiv = document.getElementById("chat-div");
+          data.element.style.top = offset - parseInt(maindiv.scrollTop) + "px";
+          //document.getElementById("test").innerHTML = data.element.style.top + " : "+ offset + " : "+maindiv.scrollTop;
+          //document.getElementById("test").innerHTML = $(data.element).position().top;
+          if ($(maindiv).offset().top >
+                $(data.element).offset().top + $(data.element).height()) {
+                  $(data.element).fadeOut(600);
+          }
+          else if ($(maindiv).offset().top + $(maindiv).height()
+              < $(data.element).offset().top + $(data.element).height() - $('#1').height()) {
+                $(data.element).fadeOut(600);
+          }
+        }
+
+
+
+        /*function inputValidate(){
+          var e = event || window.event;
+          alert("hi");
+          var key = e.keyCode || e.which;
+          if (key.match("/[\\\/`\_\<\>\@\&\+\=\$\*\^]/")) { //allow backspace //and delete
+            if (e.preventDefault) e.preventDefault();
+                e.returnValue = false;
+          }
+        }*/
+
+
+        // remember tech
+      }
+    </script>
+  </head>
+  <body>
+    <div id="test"></div>
+    <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <li class="nav-item">
+      <a class="nav-link" id=userinfo></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id=language></a>
+    </li>
+    <!--<li>
+      <a id="logout" class="nav-link abs" onclick="log_out()">
+        <span class="english">LOG OUT</span>
+        <span class="french">DÉCONNEXION</span>
+      </a>
+    </li>-->
+    <li class="nav-item">
+        <a href="/#{{ language }}" target="_blank" class="nav-link"><i class="fa fa-info-circle"></i> Instructions</a>
+    </li>
+  </ul>
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <div class="panel-heading">
+        <div class="panel-title text-left">
+          <h1 class="my-4">
+            <span class="english">DiaBLa</span>
+            <span class="french">DiaBLa</span>
+          </h1>
+        </div>
+      </div>
+
+  <div class="row">
+    <div class="col-md-12" id="chat-content">
+
+      <div id="instructions" class="alert" role="alert">
+
+        </a>
+      </div>
+      <div id="chat-container" class="container">
+        <div id="users-display" class="row">
+          <div id="your-partner" class="user-bio col-0 col-sm-0 col-md-2"></div>
+          <div id="scenario" class="alert col-12 col-sm-12 col-md-8"></div>
+          <div id="you" class="user-bio col-0 col-sm-0 col-md-2"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-body" id="chat-div" onscroll="scroll_popovers()">
+            <table id="chat" data-toggle data-show-toggle="true" data-mobile-responsive="true">
+              <tbody id="chat-tbody"></tbody>
+            </table>
+            <div id="eval-popover-container"></div>
+          </div>
+          <div class="card-footer">
+            <div id="typing_status"></div>
+            <div id="minimum-reached" class="alert alert-success alert-dismissible" style="display:none;"></div>
+
+            <div id="reminder" class="alert alert-danger alert-dismissible">
+              <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+              <span class="english">
+                <strong>Reminder:</strong> Please play a made-up character. Please do NOT enter any personal information.
+              </span>
+              <span class="french">
+                <strong>Rappel:</strong> Merci de jouer un personnage fictif. Merci de ne jamais donner d'informations personnelles.
+              </span>
+            </div>
+             <input id="text" placeholder="Enter your message here. Press ENTER to send." autocomplete="off" maxlength="400" required><br><br>
+
+            <span id="input_error" style="display:none;">
+              <span class="english">Invalid format: only alphanumeric characters please!</span>
+              <span class="french">Format invalide&nbsp;: merci de n'utiliser que des lettres et des chiffres.</span>
+            </span>
+            <a href="#" onclick="finish_dialogue();" class="btn btn-primary btn-sm btn-block login-button left-button">
+              <span class="english">End this dialogue</span>
+              <span class="french">Finir ce dialogue</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+
+
+<!-- The Modal -->
+<div class="modal fade" id="final-evaluation">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h4 class="modal-title">
+          <span class="english">Overall Evaluation</span>
+          <span class="french">Évaluation globale</span>
+        </h4>
+        <!--<button type="button" class="close" data-dismiss="modal">&times;</button>-->
+      </div>
+
+      <!-- Modal body -->
+      <div class="modal-body">
+        <h6>
+          <span class="english">
+            Please take moments to answer some very general questions on the dialogue you just had.
+          </span>
+          <span class="french">
+            Merci de prendre quelques instants pour répondre à quelques questions générales sur le dialogue.
+          </span>
+          <br>
+          <a href="/transcription" target="_blank">
+            <span class="english">
+              See the dialogue again here (opens in another window)
+            </span>
+            <span class="french">
+              Revoir le dialogue ici (il s'ouvrira dans une autre fenêtre)
+            </span>
+          </a>
+        </h6>
+          <form method="POST" class="form-horizontal" action="#">
+            {{ form.hidden_tag() }}
+
+            <!-- Technical problems? -->
+            <div class="form-group">
+                  <!--{{ form.tech.label(class_ = "control-label") }}-->
+                  <span class="english">Were there any practical problems with the dialogue?</span>
+                  <span class="french">Avez-vous rencontré des problèmes pratiques au cours du dialogue&nbsp;?</span>
+                  <span class="error">
+                    {% if form.tech.errors|length > 0 %}*{% endif %}
+                  </span>
+                <div class="cols-sm-10">
+                  <div class="input-group">
+
+                    <ul id="tech">
+                      <li>
+                        <input id="tech-0" name="tech" type="radio" value="absent" onclick="select_tech('tech-0')">
+                        <label for="tech-0">
+                          <span class="english">The other person was absent</span>
+                          <span class="french">L'autre personne était absente</span>
+                        </label>
+                      </li>
+                      <li>
+                        <input id="tech-1" name="tech" type="radio" value="nocoop" onclick="select_tech('tech-1')">
+                        <label for="tech-1">
+                          <span class="english">The other person did not follow the instructions</span>
+                          <span class="french">L'autre personne n'a pas suivi les instructions</span>
+                          </label>
+                      </li>
+                      <li>
+                        <input id="tech-2" name="tech" type="radio" value="techprob" onclick="select_tech('tech-2')">
+                        <label for="tech-2">
+                          <span class="english">There was a technical problem with DiaBLa itself <br>(the interface, the machine translation system…)</span>
+                          <span class="french">Il y a eu un problème technique avec DiaBLa lui-même <br>(l'interface, le système de traduction automatique…)</span>
+                        </label>
+                      </li>
+                      <li>
+                        <input id="tech-3" name="tech" type="radio" value="ok" onclick="select_tech('tech-3')">
+                        <label for="tech-3">
+                          <span class="english">No, none of the above</span>
+                          <span class="french">Non, je n'ai rencontré aucun de ces problèmes</span>
+                        </label>
+                      </li>
+                    </ul>
+                  </div>
+              </div>
+            </div>
+
+            <span class="english">Please rate the following aspects of your partner's translated speech:</span>
+            <span class="french">Merci d'évaluer les traductions des propos de votre interlocuteur/trice selon les critères suivants&nbsp;:</span>
+              <br><br>
+              <div class="form-group close-list">
+                <table class="table table-hover" id="tab-eval">
+                  <thead class="thead-light">
+                    <tr>
+                      <th></th>
+                      <th>
+                        <span class="english">Excellent</span>
+                        <span class="french">Excellent</span>
+                      </th>
+                      <th>
+                        <span class="english">Good</span>
+                        <span class="french">Bon</span>
+                      </th>
+                      <th>
+                        <span class="english">Average</span>
+                        <span class="french">Moyen</span>
+                      </th>
+                      <th>
+                        <span class="english">Poor</span>
+                        <span class="french">Mauvais</span>
+                      </th>
+                      <th>
+                        <span class="english">Very poor</span>
+                        <span class="french">Très mauvais</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tr>
+                    <td>
+                      <!--{{ form.grammaticality.label }}-->
+                      <a href="#" data-toggle="tooltip" title="How grammatical were the translations of the other person's utterances?">
+                        <span class="english">Grammar<sup>(?)</sup></span>
+                      </a>
+                      <a href="#" data-toggle="tooltip" title="À quel point les traductions des énoncés produits par votre interlocuteur/trice étaient-ils grammaticaux&nbsp;?">
+                        <span class="french">Grammaire<sup>(?)</sup></span>
+                      </a>
+                      <span class="error">
+                        {% if form.grammaticality.errors|length > 0 %}*{% endif %}
+                      </span>
+                    </td>
+                    {% for subfield in form.grammaticality %}
+                    <td>
+                      {{ subfield }}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="#" data-toggle="tooltip" title="How much sense did the translations of your partner's utterances make?">
+                        <span class="english">Meaning<sup>(?)</sup></span>
+                      </a>
+                      <a href="#" data-toggle="tooltip" title="À quel point les traductions des énoncés produits par votre interlocuteur/trice avaient-ils un sens&nbsp;?">
+                        <span class="french">Sens<sup>(?)</sup></span>
+                      </a>
+                      <span class="error">
+                        {% if form.meaning.errors|length > 0 %}*{% endif %}
+                      </span>
+                    </td>
+                    {% for subfield in form.meaning %}
+                    <td>
+                      {{ subfield }}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="#" data-toggle="tooltip" title="How good was the choice of words in general?">
+                        <span class="english">Word choice<sup>(?)</sup></span>
+                      </a>
+                      <a href="#" data-toggle="tooltip" title="À quel point est-ce que le choix des mots étaient bon en général&nbsp;?">
+                        <span class="french">Choix des mots<sup>(?)</sup></span>
+                      </a>
+                      <span class="error">
+                        {% if form.wordchoice.errors|length > 0 %}*{% endif %}
+                      </span>
+                    </td>
+                    {% for subfield in form.wordchoice %}
+                    <td>
+                      {{ subfield }}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="#" data-toggle="tooltip" title="How appropriate was the style and level of formality of the translations of the other person's utterances, and how natural did they sound?">
+                        <span class="english">Style<sup>(?)</sup></span>
+                      </a>
+                      <a href="#" data-toggle="tooltip" title="À quel point les traductions des énoncés produits par votre interlocuteur/trice correspondaient-elles au style et au niveau de langue du dialogue (familier vs.&nbsp;soutenu), et à quel points semblaient-ils naturels&nbsp;?">
+                        <span class="french">Style<sup>(?)</sup></span>
+                      </a>
+                      <span class="error">{% if form.style.errors|length > 0 %}*{% endif %}</span>
+                    </td>
+                    {% for subfield in form.style %}
+                    <td>
+                      {{ subfield }}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                  <tr>
+                    <td>
+                      <a href="#" data-toggle="tooltip" title="How coherent were the translations of the other person's utterances with respect to the rest of the dialogue?">
+                        <span class="english">Coherence<sup>(?)</sup></span>
+                      </a>
+                      <a href="#" data-toggle="tooltip" title="À quel point les traductions des énoncés produits par votre interlocuteur/trice vous ont-ils semblé cohérents par rapport au fil du dialogue&nbsp;?">
+                        <span class="french">Coherence<sup>(?)</sup></span>
+                      </a>
+                      <span class="error">
+                        {% if form.coherence.errors|length > 0 %}*{% endif %}
+                      </span>
+                    </td>
+                    {% for subfield in form.coherence %}
+                    <td>
+                      {{ subfield }}
+                    </td>
+                    {% endfor %}
+                  </tr>
+                </table>
+              </div>
+
+            <!-- Verbatim quality -->
+            <div class="form-group">
+              <!--<label for="verbatim_quality" class="cols-sm-2 control-label">-->
+                <!--{{ form.verbatim_quality.label(class_ = "control-label") }}-->
+                <span class="english">Specific comments on the overall quality of the dialogue</span>
+                <span class="french">Commentaires sur la qualité du dialogue</span>
+              <!--</label>-->
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-addon"></span>
+                  {{ form.verbatim_quality(class_="form-control", placeholder="") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.verbatim_quality.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.verbatim_quality.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+
+              </div>
+            </div>
+
+            <!-- Interface quality -->
+            <div class="form-group">
+                <!--{{ form.interface.label(class_ = "control-label") }}-->
+                <span class="english">What particular aspects were poorly translated?</span>
+                <span class="french">Quels aspects en particulier ont été mal traduits&nbsp;?</span>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  {{ form.particular_problems(class_="form-control", placeholder="") }}
+                </div>
+              </div>
+              <span class="error english">
+                {% for error in form.particular_problems.errors %}{{ error["english"] }}{% endfor %}
+              </span>
+              <span class="error french">
+                {% for error in form.particular_problems.errors %}{{ error["french"] }}{% endfor %}
+              </span>
+            </div>
+
+            <!-- Interface quality -->
+            <div class="form-group">
+                <!--{{ form.interface.label(class_ = "control-label") }}-->
+                <span class="english">Specific comments on the DiaBLa chat interface</span>
+                <span class="french">Commentaires sur l'interface de chat DiaBLa</span>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  {{ form.interface(class_="form-control", placeholder="") }}
+                </div>
+              </div>
+              <span class="error english">
+                {% for error in form.interface.errors %}{{ error["english"] }}{% endfor %}
+              </span>
+              <span class="error french">
+                {% for error in form.interface.errors %}{{ error["french"] }}{% endfor %}
+              </span>
+            </div>
+
+            <span class="error">
+              {% if form.errors|length > 0 %}
+              <span class="english">Required fields are marked with an asterisk *</span>
+              <span class="french">Les champs obligatoires sont marqués d'une astérisque *</span>
+              <br>
+              {% endif %}
+            </span>
+
+            <div class="form-group">
+                {{ form.would_use }}
+              <span class="english">
+                &nbsp;If I were to communicate by instant message with somebody with whom
+                I do not share a common language, I would gladly use an interface such as DiaBLa,
+                as the quality of the translations is good enough.
+             </span>
+            <span class="french">
+              &nbsp;Si je devais communiquer par messagerie instantanée avec un(e)
+              interlocuteur/trice avec qui je n'avais aucune langue utilisable en
+              commun, j'utiliserais volontiers une telle application telle que DiaBLa
+              car la qualité des traductions est suffisante.
+            </span>
+              <br>
+              <span class="error english">
+                {% for error in form.would_use.errors %}{{ error["english"] }}{% endfor %}
+              </span>
+              <span class="error french">
+                {% for error in form.would_use.errors %}{{ error["french"] }}{% endfor %}
+              </span>
+            </div>
+
+            <br>
+            <!-- Login (or register) -->
+            <div class="form-group">
+              {{ form.login(class_="btn btn-primary btn-lg btn-block login-button") }}
+            </div>
+          </form>
+
+      <!-- Modal footer -->
+      <!--<div class="modal-footer">
+      </div>-->
+
+    </div>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <span class="english">
+      A problem with this website? Contact bawden[at]limsi.fr
+    </span>
+    <span class="french">
+      Vous rencontrez un problème avec ce site&nbsp;? Contactez bawden[at]limsi.fr
+    </span>
+  </div>
+</footer>
+</body>
+</html>

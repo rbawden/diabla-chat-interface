@@ -1,0 +1,25 @@
+{   "0": 
+	 {"all": 11, "baseline": 4, "2to2": 7},
+	"1": 
+	{"all": 5, "baseline": 2, "2to2": 3},
+	 "2": 
+	{"all": 7, "baseline": 4, "2to2": 3},
+	 "3": 
+	{"all": 7, "baseline": 4, "2to2": 3},
+	 "4": 
+	 {"all": 10, "baseline": 6, "2to2": 4},
+	 "5": 
+	{"all": 8, "baseline": 7, "2to2": 1},
+	 "6":
+	{"all": 9, "baseline": 5, "2to2": 4},
+	 "7":
+	 {"all": 6, "baseline": 3, "2to2": 3},
+	 "8": 
+	 {"all": 9, "baseline": 4, "2to2": 5},
+	 "9":
+	{"all": 4, "baseline": 0, "2to2": 4},
+	 "10": 
+	 {"all": 7, "baseline": 4, "2to2": 3},
+	 "11": 
+	 {"all": 5, "baseline": 3, "2to2": 2}
+}

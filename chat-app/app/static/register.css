@@ -1,0 +1,82 @@
+/*
+/* Created by Filipe Pina
+ * Specific styles of signin, register, component
+ */
+/*
+ * General styles
+ */
+
+hr{
+	width: 30%;
+}
+
+
+
+label {
+  margin-bottom: 5px !important;
+  margin-top: 7px !important;
+}
+
+input,
+input::-webkit-input-placeholder {
+    font-size: 11px;
+    padding-top: 3px;
+	padding-bottom: 5px;
+	/* height: 40px; */
+}
+
+form{
+	display: block;
+	margin: 0px auto;
+	width:100%;
+	min-width: 100px;
+	padding: 10px;
+ 	/* background-color: #fff; */
+}
+
+
+@media (min-width: 768px) {
+	form{
+		min-width: 400px;
+	}
+}
+
+
+
+.login-register{
+	font-size: 14px;
+	text-align: center;
+	display: block;
+	margin: auto;
+	width: auto;
+	/* color: white; */
+	/* background-color: #a5b5d0; */
+	border-color: #a5b5d0;
+}
+.login-register a{
+	/* color: white; */
+}
+
+.colorgraph {
+  height: 7px;
+  border-top: 0;
+  background: #c4e17f;
+  border-radius: 5px;
+  background-image: -webkit-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: -moz-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: -o-linear-gradient(left, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+  background-image: linear-gradient(to right, #c4e17f, #c4e17f 12.5%, #f7fdca 12.5%, #f7fdca 25%, #fecf71 25%, #fecf71 37.5%, #f0776c 37.5%, #f0776c 50%, #db9dbe 50%, #db9dbe 62.5%, #c49cde 62.5%, #c49cde 75%, #669ae1 75%, #669ae1 87.5%, #62c2e4 87.5%, #62c2e4);
+}
+
+
+.circle{
+	border-radius: 3px 8px 8px 3px !important;
+	border: 1px solid #ccc !important;
+}
+
+form h3 {
+	text-align: left;
+	margin-left: -15px;
+	font-weight: bold;
+	margin-top: 30px;
+}

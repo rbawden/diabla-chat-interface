@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+    <head>
+       <title>DiaBLa</title>
+       <meta charset="UTF-8">
+       <meta name="viewport" content="width=device-width, initial-scale=1">
+       <link rel="shortcut icon" href="#" />
+       <!-- Bootstrap -->
+       <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+       <link rel=stylesheet type=text/css href="{{ url_for('static', filename='main.css') }}">
+       <link rel=stylesheet type=text/css href="{{ url_for('static', filename='register.css') }}">
+
+       <!-- Website Font style -->
+	     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+
+		   <!-- Google Fonts -->
+		   <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+		   <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+
+       <!--  Javascript -->
+       <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+       <!--<script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>-->
+       <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+       <script src="https://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+       <script>
+         var language;
+         $(document).ready(function(){
+           if (window.location.hash == "#french" || window.location.hash == "#english"){
+             language = window.location.hash.split('#')[1];
+           }
+           else  {
+             language = "english";
+           }
+           // visualise the text for the language
+           $("span."+language).show();
+
+           // Change links to have correct language
+           document.getElementById("nav-register").setAttribute('href', '/register#' + language);
+           document.getElementById("nav-login").setAttribute('href', '/login#' + language);
+
+           // tooltips for final evaluation form
+           $('[data-toggle="tooltip"]').tooltip();
+         });
+
+         function change_language(chosen_language){
+           // visualise the text for the language
+           var langs = ["english", "french"];
+           window.location.hash = chosen_language;
+           for (var idx in langs){
+            if (langs[idx] == chosen_language){
+              $("." + langs[idx]).show();
+            }
+            else {
+              $("." + langs[idx]).hide();
+            }
+          }
+          // Change links to have correct language
+          document.getElementById("nav-register").setAttribute('href', '/register#' + chosen_language);
+          document.getElementById("nav-login").setAttribute('href', '/login#' + chosen_language);
+         }
+       </script>
+    </head>
+    <body>
+      <ul class="nav nav-tabs">
+      <li class="nav-item dropdown">
+        <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+          <!--<i class="fa fa-language"></i>-->
+          &nbsp;LANG.
+        </a>
+        <div class="dropdown-menu">
+          <a class="dropdown-item nav-item" onclick="change_language('english')">ENGLISH</a>
+          <a class="dropdown-item nav-item" onclick="change_language('french')">FRANÇAIS</a>
+        </div>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link abs" href="/register" id="nav-register">
+          <span class="english">REGISTER</span>
+          <span class="french">CRÉER&nbsp;UN&nbsp;COMPTE</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link abs" href="/login" id="nav-login">
+          <span class="english">LOG IN</span>
+          <span class="french">SE&nbsp;CONNECTER</span>
+        </a>
+      </li>
+      </ul>
+      <div class="content-wrapper">
+        <div class="container-fluid">
+
+          <div class="panel-heading">
+            <div class="panel-title text-left">
+              <h1 class="my-4">
+                <span class="english">DiaBLa account creation</span>
+                <span class="french">Création de compte DiaBLa</span>
+              </h1>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-12">
+
+        <div class="main-login main-center">
+        <form method="POST" class="form-horizontal" action="#">
+
+            {{ form.hidden_tag() }}
+
+            <div class="form-group">
+              <label for="email" class="cols-sm-2 control-label">
+                <span class="english">Email address</span>
+                <span class="french">Adresse e-mail</span>
+                <small><br>
+                  <span class="english">We will never send any emails to this address.
+                  It is just used as an ID when you log in. You can even invent an
+                  email address if you wish.</span>
+                  <span class="french">Aucun e-mail ne vous sera envoyé à cette adresse.
+                    Elle n'est utilisée qu'en tant qu'identifiant. Vous pouvez même indiquer
+                    une adresse e-mail fictive si vous préférez.
+                  </span>
+                </small>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-envelope" aria-hidden="true"></i></span>
+                  {{ form.email(class_="form-control") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.email.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.email.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+
+            <div class="form-group">
+              <label for="age" class="cols-sm-2 control-label">
+                <span class="english">Age in years</span>
+                <span class="french">Âge (en années)</span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-birthday-cake" aria-hidden="true"></i></span>
+                  {{ form.age(class_="form-control", placeholder="", pattern="[0-9]{1,3}") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.age.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.age.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="gender" class="cols-sm-2 control-label">
+                <span class="english">Gender</span>
+                <span class="french">Genre</span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-venus-mars" aria-hidden="true"></i></span>
+                  {{ form.gender(class_="form-control") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.gender.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.gender.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="english" class="cols-sm-2 control-label">
+
+                <span class="english">
+                  English language ability
+                </span>
+
+                <span class="french">
+                  Niveau d'anglais
+                </span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-language" aria-hidden="true"></i></span>
+                  {{ form.english_ability(class_="form-control") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.english_ability.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.english_ability.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="french" class="cols-sm-2 control-label">
+                <span class="english">French language ability</span>
+                <span class="french">Niveau de français</span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-language" aria-hidden="true"></i></span>
+                  {{ form.french_ability(class_="form-control") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.french_ability.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.french_ability.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="otherlangs" class="cols-sm-2 control-label">
+                <span class="english">Other languages spoken (at least at an intermdiate level)</span>
+                <span class="french">Autres langues parlées (au moins à un niveau intermédiaire)</span>
+              </label>
+              <div class="cols-sm-10">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa fa-language" aria-hidden="true"></i></span>
+                  {{ form.otherlangs(class_="form-control") }}
+                </div>
+                <span class="error english">
+                  {% for error in form.otherlangs.errors %}{{ error["english"] }}{% endfor %}
+                </span>
+                <span class="error french">
+                  {% for error in form.otherlangs.errors %}{{ error["french"] }}{% endfor %}
+                </span>
+              </div>
+            </div>
+            <br>
+            <small>
+              <span class="english">
+                Please check the following boxes if they apply to you:
+              </span>
+              <span class="french">
+                Merci de cocher les cases suivantes si vous êtes concerné(e):
+              </span>
+            </small>
+
+            <br><br>
+            <div class="form-group">
+              {{ form.tal }}
+              <span class="english">
+                &nbsp;I have studied or worked in Natural Language Processing
+             </span>
+            <span class="french">
+              &nbsp;J'ai déjà étudié ou travaillé dans le domaine du Traitement Automatique des Langues.
+            </span>
+            <br>
+            </div>
+
+            <div class="form-group">
+              {{ form.research }}
+              <span class="english">
+                I work in research.
+             </span>
+            <span class="french">
+              Je travaille dans la recherche.
+            </span>
+            </div>
+
+            <hr>
+            <small>
+              <span class="english">
+                Important: The aim of these experiments is to provide a corpus of dialogues
+                and to evaluate the translation models used. In order to redistribute
+                the dialogues and the personal information given above (minus your email
+                address, which will not be diffused or shown to other users), we require
+                your permission to use them and freely distribute them.
+                </address>
+              </span>
+              <span class="french">
+                Important&nbsp;: Le but de ces expériences est de fournir un corpus de dialogues et d'évaluer
+                les modèles de traduction qui sont utilisés. Afin de pouvoir redistribuer
+                les dialogues, ainsi que les informations personnelles ci-dessus (à l'exception de votre
+                adresse e-mail, qui ne sera ni diffusée ni montrée aux autres utilisateurs),
+                nous avons besoin de vérifier que vous avez au moins 18 ans et de votre accord explicite.
+              </span>
+            </small>
+
+            <br><br>
+            <div class="form-group">
+                {{ form.confirmation }}
+              <span class="english">
+                I agree to the above and confirm that I am over 18.
+             </span>
+            <span class="french">
+              Je reconnaîs donner mon accord concernant la diffusion des dialogues et des informations
+              comme indiqué ci-dessus, et confirme que j'ai au moins 18 ans.
+            </span>
+              <br>
+              <span class="error english">
+                {% for error in form.confirmation.errors %}{{ error["english"] }}{% endfor %}
+              </span>
+              <span class="error french">
+                {% for error in form.confirmation.errors %}{{ error["french"] }}{% endfor %}
+              </span>
+            </div>
+
+            <br>
+            <div class="form-group">
+                {{ form.register(class_="btn btn-primary btn-lg btn-block login-button") }}
+            </div>
+        </form>
+        <span class="french small">
+          * Conformément à la loi «&nbsp;Informatique et libertés&nbsp;» du 6 janvier 1978 modifiée,
+          vous bénéficiez d’un droit d’accès et de rectification aux informations
+          qui vous concernent. Si vous souhaitez exercer ce droit et obtenir communication
+          des informations vous concernant, veuillez vous adresser à bawden[at]limsi.fr.
+        </span>
+
+        <span class="english small">
+          * According to the data protection act of January 6th, 1978 modified in 2004,
+          you benefit from the right to access and require rectification of the personal
+          information that has been collected about you. If you wish to enforce this
+          right and obtain the information about you, please contact bawden[at]limsi.fr.
+        </span>
+      </div>
+    </div>
+
+  </div>
+  </div>
+</div>
+  <footer class="footer">
+    <div class="container">
+      A problem with this website? Contact bawden[at]limsi.fr
+    </div>
+  </footer>
+  </body>
+</html>

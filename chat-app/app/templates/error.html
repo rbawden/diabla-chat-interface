@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<head>
+  <title>DiaBLa</title>
+  <meta charset="UTF-8">
+  <link rel="shortcut icon" href="#" />
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='main.css') }}">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='register.css') }}">
+  <!-- Website Font style -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+  <!-- Google Fonts -->
+  <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+  <script src="//code.jquery.com/jquery-3.2.1.min.js"></script>
+  <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+  <!-- Javascript -->
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+  <script src="https://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script>
+    $(document).ready(function(){
+      function change_language(chosen_language){
+        // visualise the text for the language
+        var langs = ["english", "french"];
+        window.location.hash = chosen_language;
+        for (var idx in langs){
+         if (langs[idx] == chosen_language){
+           $("." + langs[idx]).show();
+         }
+         else {
+           $("." + langs[idx]).hide();
+         }
+         reset_lang();
+       }
+      }
+
+      function reset_lang(data){
+        if (window.location.hash == "#french" || window.location.hash == "#english"){
+          language = window.location.hash.split('#')[1];
+          }
+        else  {
+          language = "english";
+        }
+        $("." + language).show();
+      }
+    });
+
+  </script>
+</head>
+<body>
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <ul class="nav nav-tabs">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#">
+          <i class="fa fa-language"></i>
+          &nbsp;LANG.
+          </a>
+          <div class="dropdown-menu">
+            <a class="dropdown-item nav-item" onclick="change_language('english')">ENGLISH</a>
+            <a class="dropdown-item nav-item" onclick="change_language('french')">FRANÇAIS</a>
+          </div>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link abs" href="/register">
+          <span class="english">REGISTER</span>
+          <span class="french">CRÉER&nbsp;UN&nbsp;COMPTE</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link abs" href="/login">
+          <span class="english">LOG IN</span>
+          <span class="french">SE&nbsp;CONNECTER</span>
+          </a>
+        </li>
+      </ul>
+      <div class="panel-heading">
+        <div class="panel-title text-left">
+          <h1 class="my-4">
+            DiaBLa Error page / Page d'erreur DiaBLa
+            <span class="font-italic"><small>BiLingual Dialogue</small></span>
+          </h1>
+        </div>
+      </div>
+      <div class="row main">
+        <div class="main-center">
+          <img src="{{ url_for('static', filename='images/error.png') }}" style="width: 20%; display:block; margin: auto;">
+          <br>
+          <p class="text-center">
+            There has been an error! Please try again. If this problem persists, please contact the webmaster at bawden[at]limsi.fr
+          </p>
+          <br>
+          <p class="text-center">
+            Une erreur est survenue&nbsp;! Merci de ressayer. Si le problème persiste, merci de contacter le webmaster à l'adresse bawden[at]limsi.fr
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="footer">
+    <div class="container">
+      <span class="english">
+      A problem with this website? Contact bawden[at]limsi.fr
+      </span>
+      <span class="french">
+      Vous rencontrez un problème avec ce site&nbsp;? Contactez bawden[at]limsi.fr
+      </span>
+    </div>
+  </footer>
+</body>
+</html>

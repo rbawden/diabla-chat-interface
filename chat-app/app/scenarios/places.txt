@@ -1,0 +1,11 @@
+en		fr
+in a forest	dans un forêt
+in a supermarket		dans un supermarché
+in a classroom		dans une salle de classe
+in an aeroplane		dans un avion
+at a blind date		à un rendez-vous à l'aveugle (blind date)		
+in a restaurant		au restaurant
+at the beach			à la plage
+in a prison			dans un prison
+in a bar				dans un bar
+

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<head>
+  <title>DiaBLa</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="shortcut icon" href="#" />
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='main.css') }}">
+  <link rel=stylesheet type=text/css href="{{ url_for('static', filename='hub.css') }}">
+  <!-- Website Font style -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
+  <!-- Google Fonts -->
+  <link href='https://fonts.googleapis.com/css?family=Passion+One' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Oxygen' rel='stylesheet' type='text/css'>
+  <!--  Jquery and Socket -->
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+  <script src="http://netdna.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+  <script>
+    var socket;
+    var valid_navigate=true;
+
+    var glob = {
+      "lang": {"french": "français",
+               "english": "English"},
+      "other_lang" : {"french": "anglais",
+               "english": "French"},
+      "no_users": {"french": "Il n'y a aucun utilisateur anglophone disponible en ce moment. Mais restez connecté(e), un anglophone pourrait se connecter bientôt. Et si vous connaissez un anglophone, n’hésitez pas à lui proposer de venir vous rejoindre maintenant&nbsp;!",
+                 "english": "There are currently no French speakers available. But stay connected - a French speaker could log on soon. Or if you know a French speaker, you can invite them to join you now!"},
+      "in_chat": {"french": " utilisateur(s) anglophone(s) en train de dialoguer.",
+                  "english": " French speaker(s) currently dialoguing."},
+      "in_hub": {"french": " utilisateur(s) anglophone(s) disponible(s).",
+                  "english": " French speaker(s) available."},
+      "speak_to": {"french": "Parler à ",
+                   "english": "Speak to "},
+      "decline": {"french": " a refusé votre invitation.",
+                            "english": " has declined the chat."},
+      "invite_sb": {"french": "Vous pouvez inviter quelqu'un à dialoguer en cliquant sur leur nom ci-dessous.",
+                    "english": "You can invite somebody to dialogue by clicking on their username below."}
+      };
+
+
+    $(document).ready(function(){
+        socket = io.connect('http://' + document.domain + ":" + location.port + '/hub');
+        //socket.setEncoding('uft-8');
+
+        socket.on('connect', function() {
+            socket.emit('joined', {});
+            document.getElementById("userinfo").innerHTML = '<i class="fa fa-user"></i>&nbsp;{{ name }}';
+            document.getElementById("language").innerHTML = '<i class="fa fa-language"></i>&nbsp;' + glob["lang"]["{{ language }}"].toUpperCase();
+            // visualise the text for the language
+            $("span.{{ language }}").show();
+
+            socket.emit('ping-hub', {'idnum': "{{ idnum }}" } );
+
+        });
+
+        // confirm before navigating away
+        /*if (valid_navigate && typeof window.addEventListener === 'undefined') {
+          window.addEventListener = function(e, callback) {
+              return window.attachEvent('on' + e, callback);
+          }
+        }
+
+        if (valid_navigate){
+          window.addEventListener('beforeunload', function() {
+          if ("{{ language }}" == "english") {
+            return 'Are you sure you want to navigate away? This will disconnect you.';
+          }
+          else {
+            return 'Êtes-vous sûr(e) de vouloir quitter cette page&nbsp;? Vous serez déconnecté(e).';
+          }
+
+        });
+      }*/
+
+        // ping to server every 8 seconds to show that we are still here
+        setInterval(function(){
+            socket.emit('ping-hub', {'idnum': "{{ idnum }}" } );
+            socket.emit('refresh_hub', {'idnum' : "{{ idnum }}"});
+        }, 15000);
+
+        // create chat_call
+        function create_chat_call(passive_id, active_id){
+          return function(){
+            socket.emit('chat_to_me', {'passive_id': passive_id, 'active_id': active_id});
+            if ("{{ language }}" == "english") {
+              document.getElementById("hub_info").innerHTML = "Waiting for reply from user...";
+            }
+            else {
+              document.getElementById("hub_info").innerHTML = "En attente d'une réponse de l'utilisateur...";
+            }
+          }
+        };
+
+        // send back to the dialogue where the user belongs
+        socket.on('send_back_to_dialogue', function(data){
+          socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+          alert(data.msg);
+          socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+          window.location.href = "{{ url_for('main.chat') }}";
+
+        });
+
+        // logged out of previous diaogue
+        socket.on('log_out_dialogue', function(data){
+          if ("{{ language }}" == 'english'){
+            var msg = 'Your unfinished dialogue with ' + data.name + 'has been closed.'
+          }
+          else {
+            var msg = 'Votre dialogue non fini avec ' + data.name + 'a été terminé.'
+          }
+          socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+          alert(msg);
+          socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+          refresh_hub();
+
+        });
+
+        // show all the users logged into the hub
+        socket.on('show_users', function(data) {
+          document.getElementById("userboard").innerHTML = "";
+
+          other_lang = glob["other_lang"]["{{ language }}"]
+
+          var num_added = 0;
+          var num_in_chats = 0;
+          for (var i in data.user_ids) {
+            if (data.user_langs[i] != "{{ language }}") {
+
+              if (data.rooms[i] != 1) {
+                  // user is online but currently in a chat
+                  num_in_chats += 1;
+              }
+              else {
+                // construct button
+                button = $('<button id="button-' + data.user_ids[i] +'\">').text(glob["speak_to"]["{{language}}"] + "\'");
+                button.click(create_chat_call(data.user_ids[i], "{{ idnum }}"));
+                button.append($('<span class="user">').text(data.user_list[i]));
+                button.append('\'');
+
+                // main list element
+                row = $('<tr class="user-online">');
+                el_person = $('<td id="' + data.user_list[i] +'">');
+                el_person.append(button);
+
+                // add to userboard
+                row.append(el_person);
+                $('#userboard').append(row);
+                num_added++;
+              }
+            }
+          }
+          if (num_added == 0) {
+            document.getElementById("hub_info").innerHTML = glob["no_users"]["{{ language }}"];
+          }
+          else {
+            document.getElementById("hub_info").innerHTML = glob["invite_sb"]["{{ language }}"];
+          }
+
+          // show the number of users in chats and in the hub
+          var txt = glob["in_chat"]["{{ language }}"];
+          var txt2 = glob["in_hub"]["{{ language }}"];
+          document.getElementById("users-in-chats").innerHTML = num_in_chats + txt;
+          document.getElementById("users-in-hub").innerHTML = num_added + txt2;
+        });
+
+        // calls functions to reload user list
+        function autoRefresh(){
+            socket.emit('refresh_hub', {'idnum' : "{{ idnum }}"});
+        };
+
+        // user no longer there
+        socket.on('user_no_longer_there', function(data){
+          socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+          alert(data.msg);
+          socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+        });
+
+        // going to be disconnected
+        socket.on('disconnected_timeout', function(data){
+          if ("{{ language }}"== "french") {
+            var msg = "Vous avez été déconnecté(e) (timeout). Merci de vous réconnecter."
+          }
+          else {
+            var msg = "You have been disconnected (timeout). Please reconncect."
+          }
+          window.location.href = "{{ url_for('main.index') }}";
+          alert(msg);
+        });
+
+        // somebody has asked to chat
+        socket.on('asked_to_chat', function(data){
+
+            var promise = document.getElementById("sound-invited").play();
+            if (promise !== undefined) {
+              promise.catch(error => {
+                // Auto-play was prevented
+                // Show a UI element to let the user manually start playback
+              }).then(() => {
+                // Auto-play started
+              });
+            }
+
+            socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+            if (window.confirm(data.message["{{ language }}"]) == true) {
+                socket.emit('accept_chat',{'passive_id': data.passive_id,
+                                            'active_id': data.active_id});
+            }
+            else {
+              socket.emit('refuse_chat', {'passive_id': data.passive_id,
+                                          'active_id': data.active_id});
+            }
+            socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+        });
+
+        // about to go into chat mode
+        socket.on('ready_to_chat', function(data){
+            // refresh and user.ready_to_chat should be set now
+            valid_navigate=false;
+            window.location.href = "{{ url_for('main.chat') }}";
+        });
+
+        // been logged out by somebody
+        socket.on("logged_out", function(data){
+          if (language == "english"){
+            alert(data.english);
+          }
+          else {
+            alert(data.french);
+          }
+          // go back to the login page
+          window.location.href = "{{ url_for('main.index') }}";
+        });
+
+        // ready to chat
+        socket.on('chat_refusal', function(data){
+            socket.emit('ping_alert_open', {"idnum": "{{ idnum }}"});
+            window.alert(data.passive_name + glob["decline"]["{{ language }}"]);
+            document.getElementById("hub_info").innerHTML = "";
+            socket.emit('ping_alert_close', {"idnum": "{{ idnum }}"});
+        });
+
+        // refresh when a client enters a room
+        socket.on('user_enters', function(data) {
+
+          var promise = document.getElementById("sound-arrival").play();
+          if (promise !== undefined) {
+            promise.catch(error => {
+              // Auto-play was prevented
+              // Show a UI element to let the user manually start playback
+            }).then(() => {
+              // Auto-play started
+            });
+          }
+          /*new Audio("{{ url_for('static', filename='sound/Blop-Mark_DiAngelo-79054334.wav') }}").play({
+            onplay: function() {
+              console.log('Yay, playing');
+            },
+            onerror: function(errorCode, description) {
+              console.log('Not playing');
+              // maybe failure happened _during_ playback, maybe it failed to start.
+              // depends on what is passed to the function.
+              // errorCode is currently based on W3 specs for HTML5 playback failures.
+              // https://html.spec.whatwg.org/multipage/embedded-content.html#error-codes
+            }
+          });*/
+          socket.emit('refresh_hub', {'idnum': "{{ idnum }}" });
+        });
+
+    });
+
+    // when you leave the room
+    function leave_room() {
+        socket.emit('left', {}, function() {
+          if (("{{ language }}" == "english" && window.confirm('Are you sure you want to log out?') == true)
+               ||
+               ("{{ language }}" == "french" && window.confirm('Êtes-vous sûr(e) de vouloir vous déconnecter ?') == true)
+             ) {
+            socket.emit('log_out', {});
+            socket.disconnect();
+            // go back to the login page
+            window.location.href = "{{ url_for('main.index') }}";
+          }
+        });
+    }
+
+
+  </script>
+</head>
+<body>
+  <audio autostart="false" width="0" height="0" id="sound-arrival" enablejavascript="true" preload="auto">
+    <source src="{{ url_for('static', filename='sound/Blop-Mark_DiAngelo-79054334.wav') }}" type="audio/wav"></audio>
+    <source src="{{ url_for('static', filename='sound/Blop-Mark_DiAngelo-79054334.mp3') }}" type='audio/mpeg; codecs="mp3"'></audio>
+  </audio>
+  <audio src="{{ url_for('static', filename='sound/front-desk-bells-daniel_simon.mp3') }}" autostart="false" width="0" height="0" id="sound-invited" enablejavascript="true"></audio>
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link" id=userinfo></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id=language></a>
+    </li>
+    <li class="nav-item">
+      <a id="logout" class="nav-link abs" onclick="leave_room()">
+        <span class="english">LOG OUT</span>
+        <span class="french">DÉCONNEXION</span>
+      </a>
+    </li>
+  </ul>
+  <div class="content-wrapper">
+    <div class="container-fluid">
+      <div class="panel-heading">
+        <div class="panel-title text-left">
+
+
+          <h1 class="my-4">
+            <!--<img src="{{ url_for('static', filename='images/diabla.png') }}" id="diabla">-->
+            DiaBLa Hub
+            <div style="display:inline;">
+            <span class="font-italic">
+              <small>
+                <span class="english">BiLingual Dialogue</span>
+                <span class="french">Dialogue BiLingue</span>
+              </small>
+            </span>
+          </div>
+          </h1>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-12">
+          <div class="card card-info">
+              <span class="information">Information:</span>
+            <div class="card-body">
+              <span id="hub_info"></span>
+            </div>
+          </div>
+      </div>
+      </div>
+      <div class="row">
+
+        <div class="col-md-4 main-hub">
+
+          <div class="card card-users">
+            <div class='card-header bg-dark text-light'>
+              <span class="english">Users online</span>
+              <span class="french">Utilisateurs connectés</span>
+            </div>
+            <div class="card-body userlist">
+              <div id="users-in-chats"></div>
+              <div id="users-in-hub"></div>
+              <table class="table table-striped" id="userboard">
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card o-hidden h-100 card-instructions">
+            <div class='card-header bg-dark text-light'>
+              Instructions
+            </div>
+            <div class="card-body">
+              <div class="mr-5">
+
+                <span class="english">
+
+                Now that you are logged in, invite someone by clicking on their name or wait
+                for someone to invite you. You can accept or refuse an invitation
+                to dialogue. If the request is accepted, you will be taken
+                to the dialogue screen.
+                One of you is assigned the first turn by the system, and after that,
+                you are free to type as you please.
+                </span>
+                <span class="french">
+                Maintenant que vous êtes connecté(e), invitez quelqu'un à dialoguer en cliquant
+                sur son nom d'utilisateur/trice ou attendez que quelqu'un vous invite.
+                Lorsque vous recevez une invitation à dialoguer, vous pouvez l'accepter ou la refuser.
+                Si votre invitation est acceptée, vous serez automatiquement transféré(e) sur la page de dialogue.
+                Vous ou la personne avec qui vous discutez sera choisi(e) par le système pour commencer le dialogue. Vous serez
+                ensuite libres de dialoguer comme vous le souhaitez.
+                </span>
+                <br>
+
+                <h5 class="text-center">
+                   <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
+                   <span class="english">Dialoguing</span>
+                   <span class="french">Dialogue</span>
+                </h5>
+                <span class="english">
+                You will both be presented with a setting (at the top of the chat box)
+                in which the dialogue will take place. E.g. <span class="bold">
+                "You are in a forest"</span> and your role in the dialogue.
+                </span>
+                <span class="french">
+                Un scénario vous sera proposé (en haut de la boîte
+                de dialogue), qui devra servir de cadre à votre dialogue. Par exemple, le système
+                pourra suggérer le scénario "Vous êtes perdu(e)s dans une forêt" et vous attribuer
+                un rôle dans ce scénario.
+                </span>
+
+                <span class="english">
+                Now improvise a dialogue in the setting provided,
+                as in improvised drama or role-play. I.e. play a made-up character and not yourself.
+                The dialogues are to be like written drama transcriptions, rather than chat messages.
+                We recommend writing at least 15 sentences each (you will receive a message when this happens).
+                You can write more, but it is even more useful for us to have more dialogues rather than fewer very long ones.
+                </span>
+                <span class="french">
+                Vous pouvez alors démarrer le dialogue en respectant le scénario qui vous a été
+                attribué, comme si vous faisiez de l'improvisation théâtrale ou un jeu de rôles.
+                En particulier, vous devez jouer un personnage fictif et non pas vous-même.
+                Les dialogues doivent respecter les règles d'orthographe et de grammaire (évitez en
+                particulier les pratiques de type «&nbsp;langage SMS&nbsp;»), et ressembler à un script de
+                film ou à une scène de théâtre plutôt qu'à une conversation par messagerie instantanée (chat).
+                Nous recommandons d'échanger un minimum de 15 phrases par personne dans un dialogue (vous recevrez
+                un message quand vous aurez atteint ce seuil). Vous pouvez en
+                écrire plus, mais il est encore plus utile pour nous d'avoir plus de dialogues plutôt que moins de
+                dialogues très longs.
+                </span>
+                <br><br>
+
+                   <table class="table" style="width:100%;">
+                      <tr>
+                         <th class="text-left"><i class="fa fa-frown-o" aria-hidden="true"></i>
+                            <span class="english">
+                            Please do not use:
+                            </span>
+                            <span class="french">
+                            Évitez&nbsp;:
+                            </span>
+                         </th>
+                         <th class="text-left"><i class="fa fa-smile-o" aria-hidden="true"></i>
+                            <span class="english">
+                            Please do use:
+                            </span>
+                            <span class="french">
+                            Essayez&nbsp;:
+                            </span>
+                         </th>
+                      </tr>
+                      <tr>
+                         <td>
+                            <ul class="no-indent">
+                               <li>
+                                  <span class="english">emoticons</span>
+                                  <span class="french">d'utiliser des émoticônes (smileys)</span>
+                               </li>
+                               <li>
+                                  <span class="english">SMS speech</span>
+                                  <span class="french">d'utiliser un language de type SMS</span>
+                               </li>
+                               <li>
+                                  <span class="english">your partner's username, your own username or personal details</span>
+                                  <span class="french">de mentionner votre nom d'utilisateur et celui de l'autre personne,
+                                    ainsi que toute information personnelle</span>
+                               </li>
+                            </ul>
+                         </td>
+                         <td>
+                            <ul class="no-indent">
+                               <li>
+                                  <span class="english">your best spelling, grammar and punctuation</span>
+                                  <span class="french">de respecter les règles d'orthographe et de grammaire</span>
+                               </li>
+                               <li>
+                                  <span class="english">the correct gender of you and your partner (for instance when using pronouns)</span>
+                                  <span class="french">de respecter le genre de l'autre utilisateur et le vôtre (par exemple dans l'emploi des pronoms)</span>
+                               </li>
+                               <li>
+                                  <span class="english">your imagination! You can refer to
+                                  imaginary objects/people around you
+                                  </span>
+                                  <span class="french">
+                                  de faire usage de votre imagination&nbsp;! Vous pouvez inventer des objets et des personnes imaginaires
+                                  autour de vous et y faire référence
+                                  </span>
+                               </li>
+                            </ul>
+                         </td>
+                      </tr>
+                   </table>
+                   <hr style="width:100%">
+                   <h5 class="text-center">
+                      <i class="fa fa-smile-o" aria-hidden="true"></i>
+                      <span class="english">Evaluation</span>
+                      <span class="french">Évaluation</span>
+                   </h5>
+                   <span class="english">
+                   You will evaluate the other person's translated utterances by selecting one of the smileys:
+                   </span>
+                   <span class="french">
+                   Vous devrez évaluer les traductions des messages de la personne avec qui vous discutez, en sélectionnant pour chacun d'eux une émoticône&nbsp;:
+                   </span>
+                   <img src="/static/images/eval.png" style="width:80px">
+                   <ul>
+                      <li>
+                         <span class="english">
+                         green smiley face: "perfect"
+                         </span>
+                         <span class="french">
+                         visage vert souriant&nbsp;:  «&nbsp;parfait&nbsp;»
+                         </span>
+                      </li>
+                      <li>
+                         <span class="english">
+                         orange neutral face: "ok but not perfect"
+                         </span>
+                         <span class="french">visage orange neutre&nbsp;: «&nbsp;ok, mais pas parfait&nbsp;»</span>
+                      </li>
+                      <li>
+                         <span class="english">sad red face: "poor"</span>
+                         <span class="french">visage rouge triste&nbsp;: «&nbsp;mauvais&nbsp;»</span>
+                      </li>
+                   </ul>
+                   <span class="english">
+                   When you select a smiley, you will be prompted
+                   to indicate what is wrong with the translation (if anything): grammar, meaning, word choice, style, coherence,
+                   plus any extra comments to make your evaluation clearer. See FAQ for some examples.
+                   </span>
+                   <span class="french">
+                   Lorsque vous sélectionnez une émoticône, vous serez invité(e) à indiquer le cas échéant
+                   quels étaient les problèmes de traduction  (grammaire, sens, choix des mots,
+                   style, cohérence) et éventuellement à formuler des commentaires additionnels qui pourraient
+                   préciser votre évaluation. Voir la FAQ pour quelques exemples.
+                   </span>
+                   <hr style="width:100%">
+                   <h5 class="text-center">
+                      <i class="fa fa-lightbulb-o" aria-hidden="true"></i>
+                      <span class="english">Goal of the experiment</span>
+                      <span class="french">Objectif de l'expérience</span>
+                   </h5>
+                   <span class="english">
+                   We will be using the dialogues to evaluate the machine translation systems
+                   and how easy communication was. The dialogues will be used to
+                   create a corpus of dialogues, which will be freely distributed for research purposes,
+                   and also used to analyse the machine translation models.
+                   Be natural, spontaneous and creative! However, please avoid
+                   making your sentences purposefully difficult in order to trick the machine translation
+                   system. Thank you!
+                   </span>
+                   <span class="french">
+                   Nous utiliserons les dialogues collectés pour évaluer les systèmes
+                   de traduction automatique et la facilité avec laquelle il est possible
+                   de communiquer grâce à eux. Les dialogues seront utilisés pour créer un corpus
+                   qui sera distribuée librement pour des fins de recherche.
+                   Il sera également utilisé pour analyser les modèles de traduction automatique. Soyez naturel,
+                   spontané(e) et créatif/ve&nbsp;! Cependant, évitez de tenter délibérément de piéger le système de
+                   traduction en écrivant intentionnellement des phrases trop complexes. Merci&nbsp;!
+                   </span>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <small>Sound by Mark DiAngelo and Daniel Simon (Licence: Attribution 3.0)</small>
+    </div>
+
+  </div>
+  <footer class="footer">
+    <div class="container">
+      <span class="english">
+        A problem with this website? Contact bawden[at]limsi.fr
+      </span>
+      <span class="french">
+        Vous rencontrez un problème avec ce site&nbsp;? Contactez bawden[at]limsi.fr
+      </span>
+    </div>
+  </footer>
+
+
+</body>
+</html>
