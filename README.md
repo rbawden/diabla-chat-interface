@@ -1,2 +1,2 @@
-# diabla-chat-interface
+# DiaBLa chat interface
 Bilingual chat interface with machine translation mediation
