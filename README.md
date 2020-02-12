@@ -24,7 +24,7 @@ If you use this adapted and augmented version, please cite the following paper:
 }
 ```
 
-The English-French parallel dialogue dataset collected using this interface can be found [here](https://github.com/rbawden/DiaBLa-dataset)
+The English-French parallel dialogue dataset collected using this interface can be found [here](https://github.com/rbawden/DiaBLa-dataset).
 
 ## Requirements
 
