@@ -37,10 +37,19 @@ Code has been tested with python 3.4
 
 ## Setup and configuration
 
+To run the chat application, install the requirements, navigate to `chat-app/` and run:
+
 `python chat.py`
 
-The chat application will be available on `http://localhost:5000` in a browser.
+By default, the chat application will be available on `http://localhost:5000` in a browser.
 
-TODO - how to configure to your MT models...
+A certain number of options will have to be configured for the application to run on your machine (paths to models, scripts, languages and addresses). These can be found in the following files:
+
+- `chat-app/app/settings.py` - contains the list of scenarios (and the text that will be displayed in both languages)
+- `chat-app/app/config.py` - contains paths to MT models, tools for translation, folder paths to store logs of the registered users and completed dialogues.
+
+To set up for new MT models:
+
+- 
 
 ## Example usage
