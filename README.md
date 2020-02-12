@@ -1,6 +1,6 @@
 # DiaBLa chat interface
 
-Bilingual chat interface for dialogues mediated by machine translation (MT) systems.
+*Bilingual chat interface for dialogues mediated by machine translation (MT) systems.*
 
 This interface is designed for the collection of bilingual dialogues between two speakers of different languages (in this version, this is for English and French). The dialogue is entirely mediated by two MT systems and each participant only sees the dialogue in their own language. The interfaces enables users to register an account, log in, choose who they want to talk to (in a meeting room) and dialogue according to a chosen fictional scenario. 
 
