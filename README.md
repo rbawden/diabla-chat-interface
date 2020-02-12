@@ -50,6 +50,7 @@ A certain number of options will have to be configured for the application to ru
 
 To set up for new MT models:
 
-- 
+- translation servers should be set up on different ports (one for English-to-French, one for French-to-English)
+- the code is currently configured such that the translation servers can be queried using `localhost:PORT_NUMBER/translate` (see the `translate` function in `chat-app/app/main/events.py` 
 
 ## Example usage
