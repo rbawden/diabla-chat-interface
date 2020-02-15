@@ -26,6 +26,11 @@ If you use this adapted and augmented version, please cite the following paper:
 
 The English-French parallel dialogue dataset collected using this interface can be found [here](https://github.com/rbawden/DiaBLa-dataset).
 
+## Licence
+
+The code is distributed under a LGPL-3.0 licence.
+
+
 ## Requirements
 
 Code has been tested with python 3.4
