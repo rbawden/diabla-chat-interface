@@ -46,7 +46,7 @@ w3lib==1.18.0
 websocket==0.2.1
 websocket-client==0.57.0
 websocket-server==0.4
-Werkzeug==0.13
+Werkzeug==0.15.3
 WTForms==2.1
 WTForms-Components==0.10.3
 wtforms-html5==0.2.2
